@@ -11,28 +11,25 @@ st.set_page_config(
 # 2. Custom CSS for a Light, Clean, Logo-Matched Look
 st.markdown("""
     <style>
-    /* Hide the default Streamlit menu and footer */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* App background */
     .stApp {
-        background-color: #F8FAFC; /* Very light slate/grey for a clean feel */
+        background-color: #F8FAFC; 
     }
     
-    /* Custom styling for headers to match the NovaLink teal/blue */
     .hero-title {
         font-size: 3.5rem;
         font-weight: 800;
-        color: #127996; /* NovaLink Teal */
+        color: #127996; 
         text-align: center;
         margin-bottom: 0.5rem;
         margin-top: 2rem;
     }
     .hero-subtitle {
         font-size: 1.5rem;
-        color: #475569; /* Dark Slate Gray */
+        color: #475569; 
         text-align: center;
         margin-bottom: 3rem;
         font-weight: 300;
@@ -40,7 +37,7 @@ st.markdown("""
     .section-title {
         font-size: 2rem;
         font-weight: 700;
-        color: #0F5A73; /* Darker NovaLink Blue */
+        color: #0F5A73; 
         text-align: center;
         padding-top: 3rem;
         padding-bottom: 1.5rem;
@@ -52,12 +49,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Header & Logo
-# Center the logo using columns
+# 3. Header & Logo (Using the exact hashed filename for your logo from GitHub)
 logo_col1, logo_col2, logo_col3 = st.columns([1, 2, 1])
 with logo_col2:
-    # Referencing your provided logo
-    st.image("image_66203b.png", use_container_width=True)
+    # Based on your upload screenshot, this matches the first image hash
+    st.image("17493ded-dedb-4d94-b4ef-5bd52c70ba35.png", use_container_width=True)
 
 # 4. Hero Section
 st.markdown('<p class="hero-title">Transform Your Business Communications</p>', unsafe_allow_html=True)
@@ -84,10 +80,9 @@ with feat_col3:
 
 st.markdown("---")
 
-# 6. Hardware Showcase (The "What")
+# 6. Hardware Showcase (Using exact filenames from your GitHub screenshot)
 st.markdown('<p class="section-title">Premium Hardware for Every Role</p>', unsafe_allow_html=True)
 
-# Using 4 columns for the 4 specific phones you provided
 hw_col1, hw_col2, hw_col3, hw_col4 = st.columns(4)
 
 with hw_col1:
@@ -96,14 +91,14 @@ with hw_col1:
     st.caption("The flagship V67 for dynamic video conferencing and executive control.")
 
 with hw_col2:
-    st.image("V66 Pro.jpg", use_container_width=True)
+    st.image("V66 Pro.webp", use_container_width=True)  # Updated from .jpg to .webp
     st.write("**Premium Desk Phone**")
     st.caption("The V66 Pro offers crystal-clear audio and advanced features for power users.")
 
 with hw_col3:
-    st.image("Fanvil V62W.png", use_container_width=True)
+    st.image("Fanvil V62 Pro.png", use_container_width=True)  # Updated filename
     st.write("**Essential WiFi Phone**")
-    st.caption("The V62W provides flexible, wireless desk deployment for modern workspaces.")
+    st.caption("The V62 Pro provides flexible, wireless desk deployment for modern workspaces.")
 
 with hw_col4:
     st.image("Linkvil W620W Rugged.png", use_container_width=True)
