@@ -43,7 +43,7 @@ st.markdown("""
         padding-bottom: 1.5rem;
     }
     
-    /* CRITICAL FIX: Force Feature Card Titles to be highly visible dark teal */
+    /* Force Feature Card Titles to be highly visible dark teal */
     .feature-card {
         background-color: #FFFFFF;
         padding: 2.2rem;
@@ -60,7 +60,7 @@ st.markdown("""
         margin-top: 0px !important;
     }
     
-    /* CRITICAL FIX: Targets native Streamlit image elements specifically within the hardware column track */
+    /* Targets native Streamlit image elements specifically within the hardware column track */
     div[data-testid="stColumn"] img {
         max-height: 180px !important;
         object-fit: contain !important;
@@ -89,7 +89,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 3. Logo Centering Fix
-# Using symmetrical balancing columns [1.5, 1, 1.5] ensures dead-center placement
 logo_col1, logo_col2, logo_col3 = st.columns([1.5, 1, 1.5])
 with logo_col2:
     st.image("logo.png", use_container_width=True)
@@ -139,7 +138,7 @@ with img_col2:
     st.image("https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=800", use_container_width=True)
     st.markdown("<p style='color: #334155; margin-top: 0.75rem; font-size: 1.1rem; text-align: center;'><strong>On the Go:</strong> Seamlessly switch calls over to high-performance rugged handsets or mobile applications for roaming, remote staff, and site visits.</p>", unsafe_allow_html=True)
 
-# 7. Hardware Showcase (Clean layout fix)
+# 7. Hardware Showcase
 st.markdown('<p class="section-title">Premium Enterprise Hardware</p>', unsafe_allow_html=True)
 
 hw_col1, hw_col2, hw_col3, hw_col4 = st.columns(4)
@@ -161,7 +160,6 @@ with hw_col3:
 
 with hw_col4:
     st.image("Linkvil W620W Rugged.png", use_container_width=True)
-    st.image("Linkvil W620W Rugged.png", use_container_width=True)  # Keeps rendering path consistent
     st.markdown("<p style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 1.2rem; margin-top: 0.5rem; margin-bottom: 0.25rem;'>Linkvil Rugged</p>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #64748B; font-size: 0.9rem; margin:0;'>Built tough for heavy sites</p>", unsafe_allow_html=True)
 
@@ -186,3 +184,4 @@ with cta_col2:
             if company_name and contact_email:
                 st.success(f"Awesome! Thanks, {company_name}. We'll reach out to {contact_email} shortly to discuss your custom savings plan.")
             else:
+                st.error("Please fill out your Company Name and Email.")
