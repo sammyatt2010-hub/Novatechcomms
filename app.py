@@ -1,4 +1,7 @@
 import streamlit as st
+import pandas as pd
+import os
+from datetime import datetime
 
 # 1. Page Configuration
 st.set_page_config(
@@ -8,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. Premium Overhaul CSS
+# 2. Premium Overhaul CSS (With Bulletproof Text Box Visibility Fixes)
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -43,7 +46,7 @@ st.markdown("""
         padding-bottom: 1.5rem;
     }
     
-    /* Force Feature Card Titles to be highly visible dark teal */
+    /* Feature Cards */
     .feature-card {
         background-color: #FFFFFF;
         padding: 2.2rem;
@@ -57,22 +60,29 @@ st.markdown("""
         font-weight: 700 !important;
         font-size: 1.4rem !important;
         margin-bottom: 0.75rem !important;
-        margin-top: 0px !important;
     }
     
-    /* Targets native Streamlit image elements specifically within the hardware column track */
+    /* Phone Image Constraints */
     div[data-testid="stColumn"] img {
         max-height: 180px !important;
         object-fit: contain !important;
     }
     
-    /* Force form styling stability */
+    /* 🚨 DEEP BOX FIX: Force backgrounds white, text dark, borders clean across ALL states */
     div[data-baseweb="input"] {
         background-color: #FFFFFF !important;
         border: 1px solid #CBD5E1 !important;
+        color: #0F172A !important;
     }
-    input {
-        color: #0F172A !important; 
+    div[data-baseweb="input"] input {
+        color: #0F172A !important;
+        background-color: #FFFFFF !important;
+        -webkit-text-fill-color: #0F172A !important;
+    }
+    /* Number input specific styling override */
+    div[data-baseweb="input"] input[type="number"] {
+        color: #0F172A !important;
+        background-color: #FFFFFF !important;
     }
     label {
         color: #1E293B !important; 
@@ -165,7 +175,7 @@ with hw_col4:
 
 st.markdown("<br><br>", unsafe_allow_html=True)
 
-# 8. Call to Action (CTA) Form Section
+# 8. Call to Action (CTA) Form Section with Data Capture
 st.markdown('<p class="section-title">Start Saving on Your Telecoms Today</p>', unsafe_allow_html=True)
 
 cta_col1, cta_col2, cta_col3 = st.columns([1, 1.8, 1])
@@ -182,6 +192,22 @@ with cta_col2:
         
         if submit_button:
             if company_name and contact_email:
+                # Create a dictionary of the fresh lead data
+                new_lead = {
+                    "Timestamp": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
+                    "Company Name": [company_name],
+                    "Business Email": [contact_email],
+                    "Phone Users": [current_phones]
+                }
+                new_df = pd.DataFrame(new_lead)
+                
+                # Sheet Capture Logic: Append data to a local leads.csv file
+                csv_filename = "leads.csv"
+                if not os.path.isfile(csv_filename):
+                    new_df.to_csv(csv_filename, index=False)
+                else:
+                    new_df.to_csv(csv_filename, mode='a', header=False, index=False)
+                    
                 st.success(f"Awesome! Thanks, {company_name}. We'll reach out to {contact_email} shortly to discuss your custom savings plan.")
             else:
                 st.error("Please fill out your Company Name and Email.")
