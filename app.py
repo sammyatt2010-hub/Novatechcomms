@@ -2,100 +2,132 @@ import streamlit as st
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="Next-Gen B2B Telecoms",
-    page_icon="🌐",
+    page_title="NovaLinkComms | Smart Telephony",
+    page_icon="📞",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 2. Custom CSS for a Polished, Professional Look
+# 2. Custom CSS for a Light, Clean, Logo-Matched Look
 st.markdown("""
     <style>
-    /* Hide the default Streamlit menu and footer for a cleaner look */
+    /* Hide the default Streamlit menu and footer */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Custom styling for headers */
+    /* App background */
+    .stApp {
+        background-color: #F8FAFC; /* Very light slate/grey for a clean feel */
+    }
+    
+    /* Custom styling for headers to match the NovaLink teal/blue */
     .hero-title {
-        font-size: 3rem;
+        font-size: 3.5rem;
         font-weight: 800;
-        color: #1E3A8A; /* Deep Trust Blue */
+        color: #127996; /* NovaLink Teal */
         text-align: center;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
+        margin-top: 2rem;
     }
     .hero-subtitle {
         font-size: 1.5rem;
-        color: #4B5563; /* Slate Gray */
+        color: #475569; /* Dark Slate Gray */
         text-align: center;
         margin-bottom: 3rem;
+        font-weight: 300;
     }
     .section-title {
         font-size: 2rem;
         font-weight: 700;
-        color: #1E3A8A;
+        color: #0F5A73; /* Darker NovaLink Blue */
         text-align: center;
-        padding-top: 2rem;
-        padding-bottom: 2rem;
+        padding-top: 3rem;
+        padding-bottom: 1.5rem;
+    }
+    .feature-text {
+        color: #334155;
+        font-size: 1.1rem;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Hero Section (The Hook)
-st.markdown('<p class="hero-title">Reliable. Scalable. Smart Telecoms.</p>', unsafe_allow_html=True)
-st.markdown('<p class="hero-subtitle">Empowering your business with enterprise-grade connectivity and communication solutions.</p>', unsafe_allow_html=True)
+# 3. Header & Logo
+# Center the logo using columns
+logo_col1, logo_col2, logo_col3 = st.columns([1, 2, 1])
+with logo_col2:
+    # Referencing your provided logo
+    st.image("image_66203b.png", use_container_width=True)
 
-# Place a stunning hero banner image (Replace with your actual image path or URL)
-# Recommendation: A high-quality abstract tech background or a modern office setup
-st.image("https://images.unsplash.com/photo-1557426305-2822e3045388?q=80&w=1470", use_container_width=True)
-
-st.markdown("---")
-
-# 4. What We Do Section (The Core Offerings)
-st.markdown('<p class="section-title">Our Core B2B Solutions</p>', unsafe_allow_html=True)
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    # Feature 1: VoIP / Hosted Phone Systems
-    st.image("https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=500", use_container_width=True)
-    st.subheader("Unified Communications")
-    st.write("Cloud-based VoIP solutions that keep your team connected anywhere, on any device. Features crystal-clear HD voice, video conferencing, and seamless CRM integration.")
-
-with col2:
-    # Feature 2: Business Broadband & Leased Lines
-    st.image("https://images.unsplash.com/photo-1600132806370-bf17e65e942f?q=80&w=500", use_container_width=True)
-    st.subheader("Ultra-Fast Connectivity")
-    st.write("Dedicating leased lines and business broadband with 99.9% uptime SLAs. Keep your operations running at the speed of light without interruption.")
-
-with col3:
-    # Feature 3: Mobile Fleet Management
-    st.image("https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=500", use_container_width=True)
-    st.subheader("Business Mobile Plans")
-    st.write("Tailored multi-network SIMs and mobile fleet management solutions to ensure your remote and field teams stay connected seamlessly.")
+# 4. Hero Section
+st.markdown('<p class="hero-title">Transform Your Business Communications</p>', unsafe_allow_html=True)
+st.markdown('<p class="hero-subtitle">Experience amazing efficiency and incredible cost savings with next-generation telephony systems.</p>', unsafe_allow_html=True)
 
 st.markdown("---")
 
-# 5. Call to Action (CTA) & Interaction
-st.markdown('<p class="section-title">Ready to Upgrade Your Connectivity?</p>', unsafe_allow_html=True)
+# 5. Core Features (The "Why")
+st.markdown('<p class="section-title">More Than Just a Phone System</p>', unsafe_allow_html=True)
 
-# Center the contact button using columns
+feat_col1, feat_col2, feat_col3 = st.columns(3)
+
+with feat_col1:
+    st.subheader("📱 Integrated Mobile Apps")
+    st.markdown('<p class="feature-text">Turn your smartphone into your desk phone. Take your business number anywhere, ensuring you never miss a vital client call, whether in the office or on the road.</p>', unsafe_allow_html=True)
+
+with feat_col2:
+    st.subheader("⏺️ Call Recording")
+    st.markdown('<p class="feature-text">Enhance training, resolve disputes, and maintain compliance with seamless, secure cloud-based call recording available at the click of a button.</p>', unsafe_allow_html=True)
+
+with feat_col3:
+    st.subheader("⚙️ System Management")
+    st.markdown('<p class="feature-text">Take control with an intuitive online portal. Easily manage users, set up complex call routing, and monitor system health without needing an IT degree.</p>', unsafe_allow_html=True)
+
+st.markdown("---")
+
+# 6. Hardware Showcase (The "What")
+st.markdown('<p class="section-title">Premium Hardware for Every Role</p>', unsafe_allow_html=True)
+
+# Using 4 columns for the 4 specific phones you provided
+hw_col1, hw_col2, hw_col3, hw_col4 = st.columns(4)
+
+with hw_col1:
+    st.image("Fanvil V67.webp", use_container_width=True)
+    st.write("**Executive Video Phone**")
+    st.caption("The flagship V67 for dynamic video conferencing and executive control.")
+
+with hw_col2:
+    st.image("V66 Pro.jpg", use_container_width=True)
+    st.write("**Premium Desk Phone**")
+    st.caption("The V66 Pro offers crystal-clear audio and advanced features for power users.")
+
+with hw_col3:
+    st.image("Fanvil V62W.png", use_container_width=True)
+    st.write("**Essential WiFi Phone**")
+    st.caption("The V62W provides flexible, wireless desk deployment for modern workspaces.")
+
+with hw_col4:
+    st.image("Linkvil W620W Rugged.png", use_container_width=True)
+    st.write("**Rugged Portable**")
+    st.caption("The Linkvil W620W keeps warehouse and field teams connected in tough environments.")
+
+st.markdown("---")
+
+# 7. Call to Action (CTA)
+st.markdown('<p class="section-title">Start Saving on Your Telecoms Today</p>', unsafe_allow_html=True)
+
 cta_col1, cta_col2, cta_col3 = st.columns([1, 2, 1])
 with cta_col2:
-    st.write("Drop your details below and a telecoms expert will build a bespoke quote for your business.")
+    st.write("Drop your details below. We'll show you exactly how much time and money NovaLinkComms can save your business.")
     
-    with st.form(key="lead_form", clear_on_submit=True):
+    with st.form(key="telephony_audit_form", clear_on_submit=True):
         company_name = st.text_input("Company Name")
         contact_email = st.text_input("Business Email")
-        requirements = st.multiselect(
-            "What solutions are you looking for?",
-            ["VoIP Phone Systems", "Leased Lines / Broadband", "Business Mobile", "Not sure / General Audit"]
-        )
-        submit_button = st.form_submit_button(label="Request a Free Telecoms Audit")
+        current_phones = st.number_input("Roughly how many phone users do you have?", min_value=1, value=5)
+        
+        submit_button = st.form_submit_button(label="Request a Free Telephony Audit")
         
         if submit_button:
             if company_name and contact_email:
-                st.success(f"Thank you, {company_name}! We'll reach out to {contact_email} shortly.")
-                # Here you can add code to append data to a database, csv, or trigger a webhook
+                st.success(f"Awesome! Thanks, {company_name}. We'll reach out to {contact_email} shortly to discuss your custom savings plan.")
             else:
                 st.error("Please fill out your Company Name and Email.")
