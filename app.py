@@ -49,11 +49,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Header & Logo (Using the exact hashed filename for your logo from GitHub)
+# 3. Header & Logo (Now pointing to the clean renamed file)
 logo_col1, logo_col2, logo_col3 = st.columns([1, 2, 1])
 with logo_col2:
-    # Based on your upload screenshot, this matches the first image hash
-    st.image("17493ded-dedb-4d94-b4ef-5bd52c70ba35.png", use_container_width=True)
+    st.image("logo.png", use_container_width=True)
 
 # 4. Hero Section
 st.markdown('<p class="hero-title">Transform Your Business Communications</p>', unsafe_allow_html=True)
@@ -61,7 +60,7 @@ st.markdown('<p class="hero-subtitle">Experience amazing efficiency and incredib
 
 st.markdown("---")
 
-# 5. Core Features (The "Why")
+# 5. Core Features
 st.markdown('<p class="section-title">More Than Just a Phone System</p>', unsafe_allow_html=True)
 
 feat_col1, feat_col2, feat_col3 = st.columns(3)
@@ -80,7 +79,7 @@ with feat_col3:
 
 st.markdown("---")
 
-# 6. Hardware Showcase (Using exact filenames from your GitHub screenshot)
+# 6. Hardware Showcase
 st.markdown('<p class="section-title">Premium Hardware for Every Role</p>', unsafe_allow_html=True)
 
 hw_col1, hw_col2, hw_col3, hw_col4 = st.columns(4)
@@ -91,12 +90,12 @@ with hw_col1:
     st.caption("The flagship V67 for dynamic video conferencing and executive control.")
 
 with hw_col2:
-    st.image("V66 Pro.webp", use_container_width=True)  # Updated from .jpg to .webp
+    st.image("V66 Pro.webp", use_container_width=True)
     st.write("**Premium Desk Phone**")
     st.caption("The V66 Pro offers crystal-clear audio and advanced features for power users.")
 
 with hw_col3:
-    st.image("Fanvil V62 Pro.png", use_container_width=True)  # Updated filename
+    st.image("Fanvil V62 Pro.png", use_container_width=True)
     st.write("**Essential WiFi Phone**")
     st.caption("The V62 Pro provides flexible, wireless desk deployment for modern workspaces.")
 
