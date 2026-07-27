@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import json
 from datetime import datetime
 
 # 1. Page Configuration
@@ -137,10 +138,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 3. Product Catalogue
-# NOTE: placeholder prices below - swap these for your real hardware price
-# book figures (or wire this up to read from the same catalogue your admin
-# panel uses in the main quoting app).
-PRODUCTS = [
+# Pulled from catalogue.json so this page and the main quoting app's admin
+# panel can share a single source of truth for pricing. Falls back to
+# built-in defaults if the file isn't present so the page never breaks.
+CATALOGUE_FILE = "catalogue.json"
+
+_FALLBACK_PRODUCTS = [
     {
         "id": "v67",
         "name": "Executive V67",
@@ -170,6 +173,23 @@ PRODUCTS = [
         "price": 149.00,
     },
 ]
+
+
+@st.cache_data(ttl=60)
+def load_products():
+    if os.path.isfile(CATALOGUE_FILE):
+        try:
+            with open(CATALOGUE_FILE, "r") as f:
+                data = json.load(f)
+            products = data.get("products", [])
+            if products:
+                return products
+        except (json.JSONDecodeError, OSError):
+            pass
+    return _FALLBACK_PRODUCTS
+
+
+PRODUCTS = load_products()
 
 # 4. Basket State
 if "basket" not in st.session_state:
@@ -315,14 +335,37 @@ with cta_col2:
         contact_email = st.text_input("Business Email")
         current_phones = st.number_input("Roughly how many phone users do you have?", min_value=1, value=5)
 
+        if checkout_items:
+            st.markdown("<hr>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #0F5A73; font-weight:700; text-align:center;'>Delivery Address</p>", unsafe_allow_html=True)
+            address_line1 = st.text_input("Address Line 1")
+            address_line2 = st.text_input("Address Line 2 (optional)")
+            city = st.text_input("Town / City")
+            postcode = st.text_input("Postcode")
+
         st.markdown("<br>", unsafe_allow_html=True)
-        submit_button = st.form_submit_button(label="Request a Free Telephony Audit")
+        button_label = "Request a Free Telephony Audit" if not checkout_items else "Submit Order (Invoice to Follow)"
+        submit_button = st.form_submit_button(label=button_label)
 
         if submit_button:
-            if company_name and contact_email:
+            missing_address = checkout_items and not (address_line1 and city and postcode)
+            if not company_name or not contact_email:
+                st.error("Please fill out your Company Name and Email.")
+            elif missing_address:
+                st.error("Please fill out your delivery address (Address Line 1, Town/City and Postcode).")
+            else:
                 order_summary = "; ".join(
                     f"{item['name']} x{item['qty']}" for item in checkout_items
                 ) if checkout_items else "No hardware selected"
+
+                delivery_address = ", ".join(
+                    part for part in [
+                        address_line1 if checkout_items else "",
+                        address_line2 if checkout_items else "",
+                        city if checkout_items else "",
+                        postcode if checkout_items else "",
+                    ] if part
+                )
 
                 new_lead = {
                     "Timestamp": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
@@ -331,6 +374,8 @@ with cta_col2:
                     "Phone Users": [current_phones],
                     "Basket Items": [order_summary],
                     "Basket Total": [f"{basket_total():.2f}"],
+                    "Delivery Address": [delivery_address],
+                    "Payment Status": ["Awaiting Invoice" if checkout_items else "N/A"],
                 }
                 new_df = pd.DataFrame(new_lead)
 
@@ -341,7 +386,11 @@ with cta_col2:
                 else:
                     new_df.to_csv(csv_filename, mode='a', header=False, index=False)
 
-                st.success(f"Awesome! Thanks, {company_name}. We'll reach out to {contact_email} shortly to discuss your custom savings plan.")
+                if checkout_items:
+                    st.success(
+                        f"Thanks, {company_name}! Your order (£{basket_total():.2f}) is confirmed and will be "
+                        f"delivered to your address on file. We'll send an invoice with payment instructions to {contact_email} shortly."
+                    )
+                else:
+                    st.success(f"Awesome! Thanks, {company_name}. We'll reach out to {contact_email} shortly to discuss your custom savings plan.")
                 st.session_state.basket = {}
-            else:
-                st.error("Please fill out your Company Name and Email.")
