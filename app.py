@@ -1,7 +1,8 @@
+import base64
+from datetime import datetime
 import io
 import json
 import os
-from datetime import datetime
 import pandas as pd
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -57,7 +58,20 @@ if not check_password():
     st.stop()
 
 
-# 3. High-Contrast Styles & Bulletproof Image Sizing
+# 3. Base64 Image Encoder (Guarantees local images render without server URL issues)
+@st.cache_data
+def get_base64_image(image_path):
+    if os.path.exists(image_path):
+        with open(image_path, "rb") as img_file:
+            encoded = base64.b64encode(img_file.read()).decode("utf-8")
+            ext = os.path.splitext(image_path)[1].lower().replace(".", "")
+            if ext == "jpg":
+                ext = "jpeg"
+            return f"data:image/{ext};base64,{encoded}"
+    return None
+
+
+# 4. High-Contrast Styles
 st.markdown(
     """
     <style>
@@ -149,7 +163,7 @@ st.markdown(
         gap: 8px;
     }
 
-    /* Hardware Cards: Uniform Flex Grid */
+    /* Hardware Column Containers */
     div[data-testid="column"] {
         background-color: #FFFFFF !important;
         border-radius: 14px;
@@ -167,35 +181,7 @@ st.markdown(
         box-shadow: 0 10px 15px -3px rgba(15, 90, 115, 0.08);
     }
 
-    /* 🚨 BULLETPROOF FIX: Native Streamlit Image Normalization 🚨 */
-    div[data-testid="column"] div[data-testid="stImage"] {
-        height: 165px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: #FAFAFA !important;
-        border-radius: 10px !important;
-        padding: 6px !important;
-        margin: 0.65rem 0 !important;
-        overflow: hidden !important;
-    }
-    div[data-testid="column"] div[data-testid="stImage"] img {
-        max-height: 150px !important;
-        max-width: 95% !important;
-        width: auto !important;
-        height: auto !important;
-        object-fit: contain !important;
-        margin: 0 auto !important;
-        display: block !important;
-    }
-
-    /* Standardized Card Headers */
-    .card-top-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.5rem;
-    }
+    /* Card Badge */
     .card-badge {
         font-size: 0.72rem;
         font-weight: 700;
@@ -207,9 +193,6 @@ st.markdown(
         display: inline-block;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-    }
-    .card-header-block {
-        min-height: 80px;
     }
 
     /* Number Steppers & Inputs */
@@ -362,7 +345,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 4. Rates & Defaults
+# 5. Rates & Product Catalogue
 LICENCE_MONTHLY_RATE = 7.00
 ACTIVATION_FEE_PER_USER = 25.00
 CATALOGUE_FILE = "catalogue.json"
@@ -423,7 +406,7 @@ def load_products():
 
 PRODUCTS = load_products()
 
-# 5. Session State Setup (Defaults all quantities to 0)
+# 6. Session State Setup (Defaults to 0 on reload)
 if "basket" not in st.session_state:
     st.session_state.basket = {}
 
@@ -463,7 +446,7 @@ def total_activation_fee():
     return st.session_state.num_licences * ACTIVATION_FEE_PER_USER
 
 
-# 6. ReportLab PDF Generation Routine
+# 7. ReportLab PDF Generation Routine
 def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -814,7 +797,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     return buffer.getvalue()
 
 
-# 7. Novalink Hero Brand Header Card
+# 8. Novalink Hero Brand Header Card
 st.markdown(
     """
     <div class="novalink-banner">
@@ -826,7 +809,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 8. Navigation Tabs
+# 9. Navigation Tabs
 tab_builder, tab_customer_view = st.tabs(["🛠️ Build Quotation", "💼 Customer Presentation View"])
 
 # --- TAB 1: BUILD QUOTATION ---
@@ -913,7 +896,7 @@ with tab_builder:
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 2: Handsets with Guaranteed Native Streamlit Image Rendering
+    # Step 2: Handsets with Guaranteed Base64-Embedded Image Viewports
     st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
     hw_cols = st.columns(4, gap="medium")
@@ -921,11 +904,11 @@ with tab_builder:
         with col:
             st.markdown(
                 f"""
-                <div class="card-top-row">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                     <span class="card-badge">{product.get('tag', 'Handset')}</span>
                     <span style="font-weight: 800; color: #0F5A73; font-size: 1.15rem;">£{product['price']:.2f}</span>
                 </div>
-                <div class="card-header-block">
+                <div style="min-height: 55px;">
                     <div style="font-weight: 800; color: #0F172A; font-size: 1rem;">{product["name"]}</div>
                     <div style="color: #64748B; font-size: 0.78rem; line-height: 1.25; margin-top: 2px;">{product["desc"]}</div>
                 </div>
@@ -933,12 +916,26 @@ with tab_builder:
                 unsafe_allow_html=True,
             )
 
-            # Native Streamlit Image Display (Guaranteed no broken links + CSS normalized)
-            img_path = product["image"]
-            if os.path.exists(img_path):
-                st.image(img_path, use_container_width=True)
+            # 🚨 Rigid Base64 Image Stage: Equal height, perfectly centered, no blowouts! 🚨
+            b64_uri = get_base64_image(product["image"])
+            if b64_uri:
+                st.markdown(
+                    f"""
+                    <div style="height: 155px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; padding: 6px;">
+                        <img src="{b64_uri}" style="max-height: 140px; max-width: 90%; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;" alt="{product['name']}">
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
             else:
-                st.caption("Image file missing")
+                st.markdown(
+                    f"""
+                    <div style="height: 155px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; color: #94A3B8; font-size: 0.85rem;">
+                        Image unavailable
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
             current_qty = st.session_state.basket.get(product["id"], 0)
             qty = st.number_input(
