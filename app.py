@@ -57,7 +57,7 @@ if not check_password():
     st.stop()
 
 
-# 3. High-Contrast Styles & Normalized Image Containers
+# 3. High-Contrast Styles & Bulletproof Image Sizing
 st.markdown(
     """
     <style>
@@ -167,27 +167,26 @@ st.markdown(
         box-shadow: 0 10px 15px -3px rgba(15, 90, 115, 0.08);
     }
 
-    /* 🚨 CRITICAL FIX: Uniform Image Stage Box for All Phone Handsets 🚨 */
-    .phone-image-stage {
-        height: 175px !important;
-        width: 100% !important;
+    /* 🚨 BULLETPROOF FIX: Native Streamlit Image Normalization 🚨 */
+    div[data-testid="column"] div[data-testid="stImage"] {
+        height: 165px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        background-color: #FAFAFA !important;
+        background: #FAFAFA !important;
         border-radius: 10px !important;
-        margin: 0.75rem 0 !important;
-        padding: 8px !important;
+        padding: 6px !important;
+        margin: 0.65rem 0 !important;
         overflow: hidden !important;
     }
-    .phone-image-stage img {
-        max-height: 160px !important;
+    div[data-testid="column"] div[data-testid="stImage"] img {
+        max-height: 150px !important;
         max-width: 95% !important;
         width: auto !important;
         height: auto !important;
         object-fit: contain !important;
-        display: block !important;
         margin: 0 auto !important;
+        display: block !important;
     }
 
     /* Standardized Card Headers */
@@ -429,7 +428,7 @@ if "basket" not in st.session_state:
     st.session_state.basket = {}
 
 if "num_licences" not in st.session_state:
-    st.session_state.num_licences = 0  # Defaulted to 0 on reload
+    st.session_state.num_licences = 0
 
 
 def set_hardware_qty(product_id, qty):
@@ -914,7 +913,7 @@ with tab_builder:
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 2: Handsets with Normalized Image Viewport
+    # Step 2: Handsets with Guaranteed Native Streamlit Image Rendering
     st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
     hw_cols = st.columns(4, gap="medium")
@@ -934,28 +933,13 @@ with tab_builder:
                 unsafe_allow_html=True,
             )
 
-            # 🚨 Rigid Image Stage with uniform baseline across models 🚨
+            # Native Streamlit Image Display (Guaranteed no broken links + CSS normalized)
             img_path = product["image"]
             if os.path.exists(img_path):
-                st.markdown(
-                    f"""
-                    <div class="phone-image-stage">
-                        <img src="app/static/{img_path}" onerror="this.onerror=null; this.src='{img_path}';" alt="{product['name']}">
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                st.image(img_path, use_container_width=True)
             else:
-                st.markdown(
-                    """
-                    <div class="phone-image-stage" style="color: #94A3B8; font-size: 0.85rem;">
-                        Image unavailable
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                st.caption("Image file missing")
 
-            # Counter defaults to 0 on reload or displays session value
             current_qty = st.session_state.basket.get(product["id"], 0)
             qty = st.number_input(
                 "Qty",
@@ -967,7 +951,6 @@ with tab_builder:
                 label_visibility="collapsed",
             )
 
-            # Button renamed to "Add to Quotation"
             if st.button(f"Add to Quotation", key=f"btn_{product['id']}", use_container_width=True):
                 set_hardware_qty(product["id"], qty)
                 if qty > 0:
