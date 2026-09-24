@@ -11,15 +11,13 @@ import streamlit as st
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="Telephony Quotation Tool",
+    page_title="Telephony Quotation",
     page_icon="📞",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# 2. Bulletproof Theme Overhaul (Direct Variable Override)
-# By overriding CSS custom variables, Streamlit forces high-contrast dark text
-# across tabs, inputs, cards, tables, and buttons in both light & dark modes.
+# 2. Strict CSS: Fixes Black Input Boxes, Black Buttons, & Contrast Everywhere
 st.markdown(
     """
     <style>
@@ -40,7 +38,7 @@ st.markdown(
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
-    /* Force all text tags to render explicitly dark */
+    /* Force all standard text tags dark */
     p, span, label, h1, h2, h3, h4, h5, h6, li, td, th {
         color: #0F172A !important;
     }
@@ -59,7 +57,7 @@ st.markdown(
         margin-bottom: 1.5rem;
     }
 
-    /* TAB OVERRIDE: Clear visible tabs in all lighting/browser states */
+    /* TABS */
     button[data-baseweb="tab"] {
         background-color: transparent !important;
         border: none !important;
@@ -79,7 +77,7 @@ st.markdown(
         color: #0F5A73 !important;
     }
 
-    /* Product Cards & Uniform Images */
+    /* HARDWARE PRODUCT CARDS */
     div[data-testid="column"] {
         background-color: #FFFFFF !important;
         border-radius: 12px;
@@ -97,18 +95,48 @@ st.markdown(
         background: #FFFFFF !important;
     }
 
-    /* Input & Stepper Field Contrast */
+    /* 🚨 BULLETPROOF FIX: Form inputs & Number Steppers (No more black boxes) 🚨 */
     div[data-baseweb="input"],
-    div[data-baseweb="base-input"] {
+    div[data-baseweb="base-input"],
+    div[data-baseweb="input"] > div,
+    .stTextInput > div > div,
+    .stNumberInput > div > div {
         background-color: #FFFFFF !important;
-        border: 1px solid #CBD5E1 !important;
+        border: 1.5px solid #CBD5E1 !important;
         border-radius: 8px !important;
+        color: #0F172A !important;
     }
-    div[data-baseweb="input"] input {
+    div[data-baseweb="input"] input,
+    input.st-bc {
+        background-color: #FFFFFF !important;
         color: #0F172A !important;
         -webkit-text-fill-color: #0F172A !important;
-        background-color: #FFFFFF !important;
         font-weight: 600 !important;
+    }
+    input::placeholder {
+        color: #94A3B8 !important;
+        -webkit-text-fill-color: #94A3B8 !important;
+    }
+
+    /* 🚨 BULLETPROOF FIX: Buttons & Download buttons (Always Teal with White Text) 🚨 */
+    .stButton > button,
+    .stDownloadButton > button {
+        background-color: #0F5A73 !important;
+        color: #FFFFFF !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        border: none !important;
+        padding: 0.65rem 1.25rem !important;
+        box-shadow: 0 2px 4px rgba(15, 90, 115, 0.15) !important;
+    }
+    .stButton > button:hover,
+    .stDownloadButton > button:hover {
+        background-color: #0B4457 !important;
+        color: #FFFFFF !important;
+    }
+    .stButton > button *,
+    .stDownloadButton > button * {
+        color: #FFFFFF !important;
     }
 
     /* Form Card Container */
@@ -120,23 +148,22 @@ st.markdown(
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04) !important;
     }
 
-    /* Primary Buttons */
-    .stButton > button {
+    /* Clean Native Markdown Tables */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-top: 0.5rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    th {
         background-color: #0F5A73 !important;
         color: #FFFFFF !important;
-        border-radius: 8px !important;
-        font-weight: 700 !important;
-        border: none !important;
+        padding: 10px 12px !important;
+        text-align: left !important;
     }
-    .stButton > button * {
-        color: #FFFFFF !important;
-    }
-    .stButton > button:hover {
-        background-color: #0c485c !important;
-    }
-
-    /* Table Typography */
-    table {
+    td {
+        padding: 10px 12px !important;
+        border-bottom: 1px solid #E2E8F0 !important;
         color: #0F172A !important;
     }
     </style>
@@ -231,7 +258,7 @@ def total_monthly_licences():
     return st.session_state.num_licences * LICENCE_MONTHLY_RATE
 
 
-# 5. ReportLab PDF Generation Engine
+# 5. ReportLab PDF Generation Routine
 def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -305,7 +332,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     hdr = Table(
         [
             [
-                Paragraph("<b>Telephony Solution Quotation</b>", title_style),
+                Paragraph("<b>Telephony Quotation</b>", title_style),
                 Paragraph(
                     f"<b>Reference:</b> {quote_meta['ref']}<br/><b>Date:</b> {quote_meta['date']}",
                     meta_style,
@@ -328,6 +355,11 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     )
 
     # Provider & Customer Panels
+    addr_line = (
+        f"Delivery: {customer['delivery']}<br/>"
+        if customer["delivery"] and customer["delivery"] != "N/A"
+        else ""
+    )
     parties = [
         [
             Paragraph("<b>SERVICE PROVIDER / PARTNER</b>", td_bold),
@@ -346,7 +378,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
                 f"Contact: {customer['name']}<br/>"
                 f"Email: {customer['email']}<br/>"
                 f"Phone: {customer['phone']}<br/>"
-                f"Delivery: {customer['delivery']}",
+                f"{addr_line}",
                 td_style,
             ),
         ],
@@ -369,7 +401,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(Spacer(1, 15))
 
     # 1. Monthly Recurring Services Table
-    story.append(Paragraph("1. Monthly Recurring Services (Opex)", sec_head))
+    story.append(Paragraph("1. Monthly Ongoing Services", sec_head))
     story.append(Spacer(1, 5))
     mrc_total = num_users * LICENCE_MONTHLY_RATE
     mrc_data = [
@@ -413,7 +445,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(Spacer(1, 15))
 
     # 2. Hardware Table
-    story.append(Paragraph("2. Hardware & Setup (Capex)", sec_head))
+    story.append(Paragraph("2. Upfront Hardware & Handsets", sec_head))
     story.append(Spacer(1, 5))
     capex_total = sum(i["line_total"] for i in hw_items)
     capex_data = [
@@ -453,7 +485,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
 
     capex_data.append(
         [
-            Paragraph("<b>Total Upfront Hardware (Ex VAT)</b>", td_bold),
+            Paragraph("<b>Total One-off Hardware (Ex VAT)</b>", td_bold),
             "",
             "",
             Paragraph(f"<b>£{capex_total:.2f}</b>", td_bold),
@@ -482,9 +514,9 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
         [
             Paragraph("<b>COMMERCIAL SUMMARY</b>", td_bold),
             Paragraph(
-                f"<b>Monthly Recurring (MRC):</b> £{mrc_total:.2f} + VAT / month<br/>"
-                f"<b>Upfront Hardware (Capex):</b> £{capex_total:.2f} + VAT<br/>"
-                f"<b>Total Month 1 Commitment:</b> £{first_month:.2f} + VAT",
+                f"<b>Monthly Ongoing Service:</b> £{mrc_total:.2f} + VAT / month<br/>"
+                f"<b>One-Off Upfront Hardware:</b> £{capex_total:.2f} + VAT<br/>"
+                f"<b>Total Month 1 Investment:</b> £{first_month:.2f} + VAT",
                 td_style,
             ),
         ]
@@ -517,7 +549,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
 
 
 # 6. Hero Brand Header
-st.markdown('<div class="brand-title">Telephony Quotation Tool</div>', unsafe_allow_html=True)
+st.markdown('<div class="brand-title">Telephony Quotation</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="brand-subtitle">Interactive white-label quote builder: combine cloud user licences with desktop hardware</div>',
     unsafe_allow_html=True,
@@ -529,7 +561,7 @@ tab_builder, tab_customer_view = st.tabs(["🛠️ Build Quotation", "💼 Custo
 # --- TAB 1: BUILD QUOTATION ---
 with tab_builder:
     # Step 1: Licences
-    st.markdown("### Step 1: Hosted User Licences (Monthly Opex)")
+    st.markdown("### Step 1: Hosted User Licences (Monthly Ongoing)")
 
     lic_col1, lic_col2 = st.columns([3, 2], gap="large")
     with lic_col1:
@@ -585,7 +617,7 @@ with tab_builder:
             st.rerun()
 
         st.metric(
-            label="Total Licence Opex (Per Month)",
+            label="Total Monthly Ongoing Cost",
             value=f"£{total_monthly_licences():.2f}/mo",
             delta=f"{st.session_state.num_licences} users @ £{LICENCE_MONTHLY_RATE:.2f}",
         )
@@ -593,7 +625,7 @@ with tab_builder:
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
     # Step 2: Handsets
-    st.markdown("### Step 2: Optional Enterprise Handsets (Upfront Capex)")
+    st.markdown("### Step 2: Optional Handsets & Hardware (One-off Upfront)")
 
     hw_cols = st.columns(4, gap="medium")
     for col, product in zip(hw_cols, PRODUCTS):
@@ -655,7 +687,7 @@ with tab_builder:
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
     # Step 3: Reseller & Customer Quote Form
-    st.markdown("### Step 3: Quotation Parties & PDF Generation")
+    st.markdown("### Step 3: Quotation Details & PDF Generation")
 
     with st.form(key="telephony_quote_form"):
         col_reseller, col_customer = st.columns(2, gap="large")
@@ -675,18 +707,14 @@ with tab_builder:
             c_phone = st.text_input("Customer Phone Number", placeholder="0161 123 4567")
 
         st.markdown("<hr style='margin: 1.25rem 0;'>", unsafe_allow_html=True)
-        needs_delivery = len(hw_list) > 0
-        if needs_delivery:
-            st.markdown("#### 📦 Hardware Delivery Details")
-            d1, d2, d3 = st.columns([2, 1, 1])
-            with d1:
-                del_addr1 = st.text_input("Delivery Address Line 1*")
-            with d2:
-                del_city = st.text_input("Town / City*")
-            with d3:
-                del_postcode = st.text_input("Postcode*")
-        else:
-            del_addr1 = del_city = del_postcode = ""
+        st.markdown("#### 📦 Delivery / Site Address *(Optional - can be left blank for early quotes)*")
+        d1, d2, d3 = st.columns([2, 1, 1])
+        with d1:
+            del_addr1 = st.text_input("Address Line 1")
+        with d2:
+            del_city = st.text_input("Town / City")
+        with d3:
+            del_postcode = st.text_input("Postcode")
 
         generate_submitted = st.form_submit_button(
             "💾 Save Quotation & Generate PDF", use_container_width=True
@@ -697,16 +725,13 @@ with tab_builder:
             st.error("Please ensure your Service Provider details are complete.")
         elif not c_company or not c_contact or not c_email:
             st.error("Please fill in the Customer's Company, Contact Name, and Email.")
-        elif needs_delivery and (not del_addr1 or not del_city or not del_postcode):
-            st.error("Hardware is in the basket. Please provide the hardware delivery address.")
         else:
-            quote_ref = f"TQT-{datetime.now().strftime('%y%m%d%H%M')}"
+            quote_ref = f"TQ-{datetime.now().strftime('%y%m%d%H%M')}"
             quote_date = datetime.now().strftime("%d %B %Y")
-            full_delivery = (
-                f"{del_addr1}, {del_city}, {del_postcode}"
-                if needs_delivery
-                else "Softphone Deployment (No Delivery Required)"
-            )
+            
+            # Format delivery address if provided, otherwise N/A
+            addr_parts = [p.strip() for p in [del_addr1, del_city, del_postcode] if p.strip()]
+            full_delivery = ", ".join(addr_parts) if addr_parts else "N/A"
 
             reseller_info = {
                 "company": r_company,
@@ -723,6 +748,7 @@ with tab_builder:
             }
             quote_meta = {"ref": quote_ref, "date": quote_date}
 
+            # Generate PDF with current basket hardware
             pdf_bytes = generate_quotation_pdf(
                 quote_meta,
                 reseller_info,
@@ -737,7 +763,7 @@ with tab_builder:
             hw_summary = (
                 "; ".join(f"{i['name']} x{i['qty']}" for i in hw_list)
                 if hw_list
-                else "No Hardware"
+                else "No Hardware (App/Licences Only)"
             )
             record = {
                 "Quote Ref": [quote_ref],
@@ -747,9 +773,9 @@ with tab_builder:
                 "Customer Contact": [c_contact],
                 "Customer Email": [c_email],
                 "Licences": [st.session_state.num_licences],
-                "Monthly Opex (£)": [f"{total_monthly_licences():.2f}"],
+                "Monthly Total (£)": [f"{total_monthly_licences():.2f}"],
                 "Hardware Summary": [hw_summary],
-                "Hardware Capex (£)": [f"{total_hardware_capex():.2f}"],
+                "Hardware Total (£)": [f"{total_hardware_capex():.2f}"],
                 "Delivery Address": [full_delivery],
             }
             df = pd.DataFrame(record)
@@ -758,7 +784,7 @@ with tab_builder:
             else:
                 df.to_csv("quotes.csv", mode="a", header=False, index=False)
 
-            st.success(f"Quotation #{quote_ref} generated successfully!")
+            st.success(f"Quotation #{quote_ref} generated successfully with all items included!")
 
     if "active_quote_pdf" in st.session_state:
         st.download_button(
@@ -781,28 +807,31 @@ with tab_customer_view:
         month_1 = mrc + capex
         h_items = basket_items()
 
-        # Clean Proposal Container with explicit background & text colors
+        # Proposal Header Card
         st.markdown(
             f"""
             <div style="background-color: #FFFFFF; border-radius: 14px; border: 2px solid #0F5A73; padding: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.04);">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #E2E8F0; padding-bottom: 1rem; margin-bottom: 1.5rem;">
                     <div>
-                        <div style="color: #0F5A73; font-size: 1.6rem; font-weight: 800;">Telephony Solution Quotation</div>
+                        <div style="color: #0F5A73; font-size: 1.6rem; font-weight: 800;">Telephony Quotation</div>
                         <div style="color: #64748B; font-size: 0.95rem;">Cloud VoIP &amp; Unified Communications Proposal</div>
                     </div>
                     <div style="background: #E0F2FE; color: #0369A1; font-weight: 700; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem;">
                         {datetime.now().strftime('%d %B %Y')}
                     </div>
                 </div>
+            </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # 3 Pillar Summary using Native Columns (Guarantees visible text in all themes)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # 3 Pillar Summary using Native Columns
         kpi1, kpi2, kpi3 = st.columns(3)
         with kpi1:
             st.metric(
-                label="Monthly Recurring (Ex VAT)",
+                label="Monthly Ongoing (Ex VAT)",
                 value=f"£{mrc:.2f}/mo",
             )
         with kpi2:
@@ -812,38 +841,35 @@ with tab_customer_view:
             )
         with kpi3:
             st.metric(
-                label="Total Month 1 Outlay",
+                label="Total Month 1 Investment",
                 value=f"£{month_1:.2f}",
             )
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 1. Monthly Recurring Services (Opex)")
+        st.markdown("#### 1. Monthly Ongoing Services")
         if st.session_state.num_licences > 0:
             st.markdown(
                 f"""
-                | Service Description | Quantity | Unit Price | Monthly Total |
-                | :--- | :---: | :---: | :---: |
-                | **Hosted VoIP User Licence** (Apps, Call Recording, Inclusive UK Mins) | {st.session_state.num_licences} Users | £{LICENCE_MONTHLY_RATE:.2f} / mo | **£{mrc:.2f} / mo** |
-                """
+| Service Description | Quantity | Unit Price | Monthly Total |
+| :--- | :---: | :---: | :---: |
+| **Hosted VoIP User Licence** (Apps, Call Recording, Inclusive UK Mins) | {st.session_state.num_licences} Users | £{LICENCE_MONTHLY_RATE:.2f} / mo | **£{mrc:.2f} / mo** |
+"""
             )
         else:
             st.caption("No user licences currently selected.")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 2. Physical Handsets & Hardware (Capex)")
+        st.markdown("#### 2. Physical Handsets & Hardware")
         if h_items:
-            table_rows = "\n".join(
-                f"| **{i['name']}** - {i['desc']} | {i['qty']} | £{i['price']:.2f} | £{i['line_total']:.2f} |"
-                for i in h_items
-            )
-            st.markdown(
-                f"""
-                | Hardware Description | Qty | Unit Price | Total |
-                | :--- | :---: | :---: | :---: |
-                {table_rows}
-                | **Hardware Subtotal** | | | **£{capex:.2f}** |
-                """
-            )
+            table_lines = [
+                "| Hardware Description | Qty | Unit Price | Total |",
+                "| :--- | :---: | :---: | :---: |"
+            ]
+            for item in h_items:
+                table_lines.append(f"| **{item['name']}** - {item['desc']} | {item['qty']} | £{item['price']:.2f} | £{item['line_total']:.2f} |")
+            table_lines.append(f"| **Hardware Subtotal** | | | **£{capex:.2f}** |")
+            
+            st.markdown("\n".join(table_lines))
         else:
             st.info(
                 "App-only deployment selected (No physical desktop hardware). Users will utilise PC/Mac and mobile smartphone apps."
@@ -854,7 +880,6 @@ with tab_customer_view:
             """
             <div style="background-color: #F8FAFC; border: 1px dashed #CBD5E1; padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: #64748B;">
                 <strong>Commercial Terms:</strong> Quotation valid for 30 days. All prices exclude VAT. Pre-configured handsets include power adapters, desk stands, and lifetime manufacturer hardware warranties.
-            </div>
             </div>
             """,
             unsafe_allow_html=True,
