@@ -4,16 +4,17 @@ import os
 import json
 from datetime import datetime
 
-# 1. Page Configuration
+# 1. Page Configuration (White-labelled)
 st.set_page_config(
-    page_title="NovaLinkComms | Smart Telephony",
+    page_title="Telephony Quotation Tool",
     page_icon="📞",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
-# 2. Premium Overhaul CSS (With Bulletproof Text Box Visibility Fixes)
-st.markdown("""
+# 2. Modern Design CSS (Dark text, clean cards, customer summary styling)
+st.markdown(
+    """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -21,105 +22,123 @@ st.markdown("""
 
     .stApp {
         background-color: #F8FAFC;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
-    /* Hero & Titles */
+    /* Hero & Headers */
     .hero-title {
-        font-size: 3.2rem;
+        font-size: 2.8rem;
         font-weight: 800;
         color: #0F5A73;
         text-align: center;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
+        letter-spacing: -0.5px;
     }
     .hero-subtitle {
-        font-size: 1.4rem;
+        font-size: 1.25rem;
         color: #475569;
         text-align: center;
         margin-bottom: 2rem;
         font-weight: 400;
     }
     .section-title {
-        font-size: 2.2rem;
+        font-size: 1.85rem;
         font-weight: 700;
         color: #0F5A73;
         text-align: center;
-        padding-top: 3.5rem;
-        padding-bottom: 1.5rem;
+        padding-top: 2.5rem;
+        padding-bottom: 1rem;
     }
 
-    /* Feature Cards */
-    .feature-card {
-        background-color: #FFFFFF;
-        padding: 2.2rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        border-top: 5px solid #127996;
-        height: 100%;
+    /* Feature & Config Cards */
+    .licence-card {
+        background: linear-gradient(135deg, #0F5A73 0%, #164E63 100%);
+        color: #FFFFFF;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(15, 90, 115, 0.25);
+        margin-bottom: 1.5rem;
     }
-    .feature-card h3 {
-        color: #0F5A73 !important;
-        font-weight: 700 !important;
-        font-size: 1.4rem !important;
-        margin-bottom: 0.75rem !important;
+    .licence-price-badge {
+        background-color: #38BDF8;
+        color: #0F172A;
+        font-weight: 800;
+        font-size: 1.15rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: 9999px;
+        display: inline-block;
     }
 
     /* Product Cards */
     .product-card {
         background-color: #FFFFFF;
-        padding: 1.5rem;
-        border-radius: 12px;
+        padding: 1.25rem;
+        border-radius: 14px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         border: 1px solid #E2E8F0;
         height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
     .product-name {
         text-align: center;
         color: #0F5A73;
         font-weight: 700;
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         margin-top: 0.5rem;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.2rem;
     }
     .product-desc {
         text-align: center;
         color: #64748B;
-        font-size: 0.9rem;
-        margin: 0 0 0.5rem 0;
+        font-size: 0.85rem;
+        min-height: 38px;
+        margin-bottom: 0.5rem;
     }
     .product-price {
         text-align: center;
-        color: #127996;
+        color: #0F172A;
         font-weight: 800;
-        font-size: 1.3rem;
-        margin-bottom: 0.75rem;
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
     }
 
-    /* Basket panel */
-    .basket-total {
-        font-size: 1.3rem;
+    /* Customer View Panel */
+    .quote-box {
+        background-color: #FFFFFF;
+        border-radius: 16px;
+        padding: 2rem;
+        border: 2px solid #0F5A73;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.07);
+    }
+    .quote-stat-box {
+        background: #F1F5F9;
+        border-radius: 12px;
+        padding: 1.2rem;
+        text-align: center;
+        border-left: 4px solid #0F5A73;
+    }
+    .quote-stat-num {
+        font-size: 1.8rem;
         font-weight: 800;
         color: #0F5A73;
-        text-align: right;
+    }
+    .quote-stat-label {
+        font-size: 0.85rem;
+        color: #64748B;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    /* Phone Image Constraints */
-    div[data-testid="stColumn"] img {
-        max-height: 180px !important;
-        object-fit: contain !important;
-    }
-
-    /* 🚨 DEEP BOX FIX: Force backgrounds white, text dark, borders clean across ALL states */
+    /* Form & Input Overhauls */
     div[data-baseweb="input"] {
         background-color: #FFFFFF !important;
         border: 1px solid #CBD5E1 !important;
         color: #0F172A !important;
     }
     div[data-baseweb="input"] input {
-        color: #0F172A !important;
-        background-color: #FFFFFF !important;
-        -webkit-text-fill-color: #0F172A !important;
-    }
-    div[data-baseweb="input"] input[type="number"] {
         color: #0F172A !important;
         background-color: #FFFFFF !important;
     }
@@ -129,46 +148,46 @@ st.markdown("""
     }
     .stForm {
         background-color: #FFFFFF !important;
-        padding: 2.5rem !important;
+        padding: 2rem !important;
         border-radius: 16px !important;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05) !important;
         border: 1px solid #E2E8F0 !important;
     }
     </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
-# 3. Product Catalogue
-# Pulled from catalogue.json so this page and the main quoting app's admin
-# panel can share a single source of truth for pricing. Falls back to
-# built-in defaults if the file isn't present so the page never breaks.
+# 3. Product Catalogue & Licence Rates
+LICENCE_MONTHLY_RATE = 7.00  # £7.00 / user / month
 CATALOGUE_FILE = "catalogue.json"
 
 _FALLBACK_PRODUCTS = [
     {
         "id": "v67",
         "name": "Executive V67",
-        "desc": "Flagship smart screen console",
+        "desc": "Flagship smart touch console with HD video",
         "image": "Fanvil V67.webp",
         "price": 189.00,
     },
     {
         "id": "v66pro",
         "name": "Premium V66 Pro",
-        "desc": "Multi-line audio console",
+        "desc": "Multi-line executive audio console with colour display",
         "image": "V66 Pro.webp",
         "price": 129.00,
     },
     {
         "id": "v62pro",
         "name": "Essential V62 Pro",
-        "desc": "Flexible wireless deployment",
+        "desc": "Standard office desktop phone with Gigabit PoE",
         "image": "Fanvil V62 Pro.png",
         "price": 89.00,
     },
     {
         "id": "w620w",
         "name": "Linkvil Rugged",
-        "desc": "Built tough for heavy sites",
+        "desc": "Heavy-duty drop-proof Wi-Fi roaming handset",
         "image": "Linkvil W620W Rugged.png",
         "price": 149.00,
     },
@@ -191,13 +210,18 @@ def load_products():
 
 PRODUCTS = load_products()
 
-# 4. Basket State
+# 4. Session State Management
 if "basket" not in st.session_state:
-    st.session_state.basket = {}  # product_id -> qty
+    st.session_state.basket = {}
+
+if "num_licences" not in st.session_state:
+    st.session_state.num_licences = 5
 
 
 def add_to_basket(product_id, qty):
-    st.session_state.basket[product_id] = st.session_state.basket.get(product_id, 0) + qty
+    st.session_state.basket[product_id] = (
+        st.session_state.basket.get(product_id, 0) + qty
+    )
 
 
 def remove_from_basket(product_id):
@@ -213,184 +237,363 @@ def basket_items():
     return items
 
 
-def basket_total():
+def total_hardware_capex():
     return sum(item["line_total"] for item in basket_items())
 
 
-# 5. Logo Centering Fix
-logo_col1, logo_col2, logo_col3 = st.columns([1.5, 1, 1.5])
-with logo_col2:
-    st.image("logo.png", use_container_width=True)
+def total_monthly_licences():
+    return st.session_state.num_licences * LICENCE_MONTHLY_RATE
 
-# 6. Hero Section
-st.markdown('<p class="hero-title">Transform Your Business Communications</p>', unsafe_allow_html=True)
-st.markdown('<p class="hero-subtitle">Experience amazing efficiency and incredible cost savings with next-generation telephony systems.</p>', unsafe_allow_html=True)
 
-# 7. Basket summary bar (visible everywhere once something's added)
-items_in_basket = basket_items()
-basket_col1, basket_col2, basket_col3 = st.columns([1.5, 1, 1.5])
-with basket_col2:
-    basket_label = f"🛒 Basket ({sum(i['qty'] for i in items_in_basket)})" if items_in_basket else "🛒 Basket (empty)"
-    with st.expander(basket_label, expanded=False):
-        if not items_in_basket:
-            st.caption("Nothing in your basket yet — add some hardware below.")
-        else:
-            for item in items_in_basket:
+# 5. Header / Brand Bar
+head_col1, head_col2, head_col3 = st.columns([1, 4, 1])
+with head_col2:
+    st.markdown(
+        '<p class="hero-title">Telephony Quotation Tool</p>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<p class="hero-subtitle">Interactive white-label quote builder: combine cloud user licences with desktop hardware</p>',
+        unsafe_allow_html=True,
+    )
+
+# 6. Tab Navigation: Quote Builder vs. Customer Presentation View
+tab_builder, tab_customer_view = st.tabs(
+    ["🛠️ Build Quotation", "💼 Customer Presentation View"]
+)
+
+with tab_builder:
+    # --- SECTION A: Hosted User Licences ---
+    st.markdown(
+        '<p class="section-title">Step 1: Hosted User Licences (Monthly Opex)</p>',
+        unsafe_allow_html=True,
+    )
+
+    col_lic_info, col_lic_ctrl = st.columns([3, 2])
+
+    with col_lic_info:
+        st.markdown(
+            f"""
+            <div class="licence-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                    <h3 style="margin: 0; font-size: 1.5rem; color: #FFFFFF;">Hosted VoIP Cloud User Licence</h3>
+                    <span class="licence-price-badge">£{LICENCE_MONTHLY_RATE:.2f} / user / mo</span>
+                </div>
+                <p style="color: #E2E8F0; font-size: 0.95rem; margin-bottom: 1rem;">
+                    Full-featured cloud extension licence with enterprise capabilities:
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; color: #F1F5F9; font-size: 0.9rem;">
+                    <div>✓ Mobile App (iOS / Android)</div>
+                    <div>✓ Cloud Call Recording</div>
+                    <div>✓ Desktop PC Softphone</div>
+                    <div>✓ Auto-Attendant & IVR</div>
+                    <div>✓ Voicemail-to-Email</div>
+                    <div>✓ Inclusive UK Landline/Mobile Calls</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with col_lic_ctrl:
+        st.markdown("#### Select Required Licences")
+        selected_licences = st.number_input(
+            "Total Hosted Users",
+            min_value=0,
+            max_value=1000,
+            value=st.session_state.num_licences,
+            step=1,
+            key="licence_input",
+            help="Every team member needing a direct dial, extension, or app access requires 1 user licence.",
+        )
+        st.session_state.num_licences = selected_licences
+
+        preset_cols = st.columns(4)
+        if preset_cols[0].button("5 Users"):
+            st.session_state.num_licences = 5
+            st.rerun()
+        if preset_cols[1].button("10 Users"):
+            st.session_state.num_licences = 10
+            st.rerun()
+        if preset_cols[2].button("20 Users"):
+            st.session_state.num_licences = 20
+            st.rerun()
+        if preset_cols[3].button("50 Users"):
+            st.session_state.num_licences = 50
+            st.rerun()
+
+        st.metric(
+            label="Total Licence Cost (Per Month)",
+            value=f"£{total_monthly_licences():.2f}/mo",
+            delta=f"{st.session_state.num_licences} users @ £{LICENCE_MONTHLY_RATE:.2f}",
+        )
+
+    # --- SECTION B: Hardware Selection ---
+    st.markdown(
+        '<p class="section-title">Step 2: Optional Handsets &amp; Hardware (Upfront Capex)</p>',
+        unsafe_allow_html=True,
+    )
+
+    hw_cols = st.columns(4)
+    for col, product in zip(hw_cols, PRODUCTS):
+        with col:
+            st.markdown(
+                f"""
+                <div class="product-card">
+                    <div>
+                        <p class="product-name">{product["name"]}</p>
+                        <p class="product-desc">{product["desc"]}</p>
+                        <p class="product-price">£{product["price"]:.2f} <span style="font-size: 0.8rem; color: #64748B;">each</span></p>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            if os.path.exists(product["image"]):
+                st.image(product["image"], use_container_width=True)
+
+            qty = st.number_input(
+                "Qty",
+                min_value=1,
+                max_value=250,
+                value=1,
+                step=1,
+                key=f"qty_{product['id']}",
+                label_visibility="collapsed",
+            )
+            if st.button(
+                f"Add {product['name']}",
+                key=f"btn_{product['id']}",
+                use_container_width=True,
+            ):
+                add_to_basket(product["id"], qty)
+                st.toast(f"Added {qty}x {product['name']} to quote!", icon="✅")
+                st.rerun()
+
+    # --- Live Builder Basket Bar ---
+    hardware_list = basket_items()
+    if hardware_list:
+        st.markdown("<br>", unsafe_allow_html=True)
+        with st.expander(
+            f"🛒 Hardware Basket ({sum(i['qty'] for i in hardware_list)} items) — Subtotal: £{total_hardware_capex():.2f}",
+            expanded=True,
+        ):
+            for item in hardware_list:
                 bcol1, bcol2, bcol3, bcol4 = st.columns([3, 1, 1.5, 1])
-                bcol1.write(item["name"])
+                bcol1.write(f"**{item['name']}**")
                 bcol2.write(f"x{item['qty']}")
                 bcol3.write(f"£{item['line_total']:.2f}")
-                if bcol4.button("Remove", key=f"remove_{item['id']}"):
+                if bcol4.button("Remove", key=f"remove_btn_{item['id']}"):
                     remove_from_basket(item["id"])
                     st.rerun()
-            st.markdown(f"<p class='basket-total'>Total: £{basket_total():.2f}</p>", unsafe_allow_html=True)
 
-st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-# 8. Core Features (The "Why")
-st.markdown('<p class="section-title">Why Businesses Switch to NovaLinkComms</p>', unsafe_allow_html=True)
+    # --- Checkout / Quote Finalisation Form ---
+    st.markdown(
+        '<p class="section-title">Step 3: Generate Formal Quote &amp; Delivery</p>',
+        unsafe_allow_html=True,
+    )
 
-feat_col1, feat_col2, feat_col3 = st.columns(3)
-with feat_col1:
-    st.markdown("""
-    <div class="feature-card">
-        <h3>📱 Integrated Mobile Apps</h3>
-        <p style='color: #475569; font-size: 1.05rem; line-height: 1.5;'>Turn your smartphone into your desk phone. Take your business number anywhere, ensuring you never miss a vital client call, whether in the office or on the road.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    form_col1, form_col2, form_col3 = st.columns([1, 2, 1])
+    with form_col2:
+        with st.form(key="quotation_lead_form", clear_on_submit=False):
+            st.markdown(
+                "##### Recipient Details",
+                help="These details will populate your quotation document.",
+            )
+            company_name = st.text_input(
+                "Company Name*", placeholder="e.g. Apex Logistics Ltd"
+            )
+            contact_name = st.text_input(
+                "Contact Name*", placeholder="e.g. John Smith"
+            )
+            contact_email = st.text_input(
+                "Email Address*", placeholder="john@apexlogistics.co.uk"
+            )
+            contact_phone = st.text_input(
+                "Phone Number", placeholder="e.g. 020 7946 0991"
+            )
 
-with feat_col2:
-    st.markdown("""
-    <div class="feature-card">
-        <h3>⏺️ Cloud Call Recording</h3>
-        <p style='color: #475569; font-size: 1.05rem; line-height: 1.5;'>Enhance training, resolve disputes, and maintain absolute compliance with seamless, secure cloud-based call recording available at the click of a button.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-with feat_col3:
-    st.markdown("""
-    <div class="feature-card">
-        <h3>⚙️ Central Management</h3>
-        <p style='color: #475569; font-size: 1.05rem; line-height: 1.5;'>Take total control with an intuitive portal. Easily manage users, configure complex call routing, and monitor system health without needing an IT background.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# 9. Hybrid Workforce Image Cluster
-st.markdown('<p class="section-title">Built for the Modern, Flexible Workforce</p>', unsafe_allow_html=True)
-
-img_col1, img_col2 = st.columns(2)
-with img_col1:
-    st.image("https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800", use_container_width=True)
-    st.markdown("<p style='color: #334155; margin-top: 0.75rem; font-size: 1.1rem; text-align: center;'><strong>In the Office:</strong> Give your teams dedicated, ultra-reliable desk hardware that speeds up collaborative tasks and client handovers.</p>", unsafe_allow_html=True)
-with img_col2:
-    st.image("https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=800", use_container_width=True)
-    st.markdown("<p style='color: #334155; margin-top: 0.75rem; font-size: 1.1rem; text-align: center;'><strong>On the Go:</strong> Seamlessly switch calls over to high-performance rugged handsets or mobile applications for roaming, remote staff, and site visits.</p>", unsafe_allow_html=True)
-
-# 10. Hardware Showcase - now shoppable
-st.markdown('<p class="section-title">Premium Enterprise Hardware</p>', unsafe_allow_html=True)
-
-hw_cols = st.columns(4)
-for col, product in zip(hw_cols, PRODUCTS):
-    with col:
-        st.markdown('<div class="product-card">', unsafe_allow_html=True)
-        st.image(product["image"], use_container_width=True)
-        st.markdown(f'<p class="product-name">{product["name"]}</p>', unsafe_allow_html=True)
-        st.markdown(f'<p class="product-desc">{product["desc"]}</p>', unsafe_allow_html=True)
-        st.markdown(f'<p class="product-price">£{product["price"]:.2f}</p>', unsafe_allow_html=True)
-
-        qty = st.number_input(
-            "Qty",
-            min_value=1,
-            value=1,
-            step=1,
-            key=f"qty_{product['id']}",
-            label_visibility="collapsed",
-        )
-        if st.button("Add to Basket", key=f"add_{product['id']}", use_container_width=True):
-            add_to_basket(product["id"], qty)
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown("<br><br>", unsafe_allow_html=True)
-
-# 11. Checkout / Call to Action (CTA) Form Section with Data Capture
-st.markdown('<p class="section-title">Checkout &amp; Request Your Free Telephony Audit</p>', unsafe_allow_html=True)
-
-cta_col1, cta_col2, cta_col3 = st.columns([1, 1.8, 1])
-with cta_col2:
-    checkout_items = basket_items()
-    if checkout_items:
-        st.markdown("**Your basket:**")
-        for item in checkout_items:
-            st.write(f"- {item['name']} x{item['qty']} — £{item['line_total']:.2f}")
-        st.markdown(f"**Order total: £{basket_total():.2f}**")
-        st.markdown("<br>", unsafe_allow_html=True)
-    else:
-        st.caption("Your basket is empty — you can still request an audit, or add hardware above first.")
-
-    with st.form(key="telephony_audit_form", clear_on_submit=True):
-        st.markdown("<p style='color: #475569; text-align: center; margin-bottom: 1.5rem;'>Drop your details below. A telecoms expert will show you exactly how much time and money NovaLinkComms can save your business.</p>", unsafe_allow_html=True)
-
-        company_name = st.text_input("Company Name")
-        contact_email = st.text_input("Business Email")
-        current_phones = st.number_input("Roughly how many phone users do you have?", min_value=1, value=5)
-
-        if checkout_items:
-            st.markdown("<hr>", unsafe_allow_html=True)
-            st.markdown("<p style='color: #0F5A73; font-weight:700; text-align:center;'>Delivery Address</p>", unsafe_allow_html=True)
-            address_line1 = st.text_input("Address Line 1")
-            address_line2 = st.text_input("Address Line 2 (optional)")
-            city = st.text_input("Town / City")
-            postcode = st.text_input("Postcode")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        button_label = "Request a Free Telephony Audit" if not checkout_items else "Submit Order (Invoice to Follow)"
-        submit_button = st.form_submit_button(label=button_label)
-
-        if submit_button:
-            missing_address = checkout_items and not (address_line1 and city and postcode)
-            if not company_name or not contact_email:
-                st.error("Please fill out your Company Name and Email.")
-            elif missing_address:
-                st.error("Please fill out your delivery address (Address Line 1, Town/City and Postcode).")
+            needs_delivery = len(hardware_list) > 0
+            if needs_delivery:
+                st.markdown("<hr style='margin: 1.2rem 0;'>", unsafe_allow_html=True)
+                st.markdown(
+                    "##### Hardware Delivery Address",
+                    help="Required for hardware dispatch.",
+                )
+                addr_line1 = st.text_input("Address Line 1*")
+                addr_line2 = st.text_input("Address Line 2 (Optional)")
+                city = st.text_input("Town / City*")
+                postcode = st.text_input("Postcode*")
             else:
-                order_summary = "; ".join(
-                    f"{item['name']} x{item['qty']}" for item in checkout_items
-                ) if checkout_items else "No hardware selected"
+                addr_line1 = addr_line2 = city = postcode = ""
 
-                delivery_address = ", ".join(
-                    part for part in [
-                        address_line1 if checkout_items else "",
-                        address_line2 if checkout_items else "",
-                        city if checkout_items else "",
-                        postcode if checkout_items else "",
-                    ] if part
+            notes = st.text_area(
+                "Special Notes / Existing Provider (Optional)",
+                placeholder="Mention number ports, broadband, or current contract end date...",
+            )
+
+            submit_btn = st.form_submit_button(
+                label="Save & Submit Quotation", use_container_width=True
+            )
+
+            if submit_btn:
+                missing_core = (
+                    not company_name or not contact_name or not contact_email
+                )
+                missing_addr = needs_delivery and (
+                    not addr_line1 or not city or not postcode
                 )
 
-                new_lead = {
-                    "Timestamp": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
-                    "Company Name": [company_name],
-                    "Business Email": [contact_email],
-                    "Phone Users": [current_phones],
-                    "Basket Items": [order_summary],
-                    "Basket Total": [f"{basket_total():.2f}"],
-                    "Delivery Address": [delivery_address],
-                    "Payment Status": ["Awaiting Invoice" if checkout_items else "N/A"],
-                }
-                new_df = pd.DataFrame(new_lead)
-
-                # Sheet Capture Logic: Append data to a local leads.csv file
-                csv_filename = "leads.csv"
-                if not os.path.isfile(csv_filename):
-                    new_df.to_csv(csv_filename, index=False)
-                else:
-                    new_df.to_csv(csv_filename, mode='a', header=False, index=False)
-
-                if checkout_items:
-                    st.success(
-                        f"Thanks, {company_name}! Your order (£{basket_total():.2f}) is confirmed and will be "
-                        f"delivered to your address on file. We'll send an invoice with payment instructions to {contact_email} shortly."
+                if missing_core:
+                    st.error("Please fill in Company Name, Contact Name, and Email.")
+                elif missing_addr:
+                    st.error(
+                        "Hardware has been selected. Please complete the delivery address fields."
                     )
                 else:
-                    st.success(f"Awesome! Thanks, {company_name}. We'll reach out to {contact_email} shortly to discuss your custom savings plan.")
-                st.session_state.basket = {}
+                    quote_ref = f"TQT-{datetime.now().strftime('%y%m%d%H%M')}"
+                    hardware_summary = (
+                        "; ".join(
+                            f"{item['name']} x{item['qty']} (£{item['line_total']:.2f})"
+                            for item in hardware_list
+                        )
+                        if hardware_list
+                        else "No Hardware (App/Licences Only)"
+                    )
+                    full_address = (
+                        ", ".join(
+                            [
+                                p
+                                for p in [addr_line1, addr_line2, city, postcode]
+                                if p.strip()
+                            ]
+                        )
+                        if needs_delivery
+                        else "N/A"
+                    )
+
+                    new_record = {
+                        "Quote Ref": [quote_ref],
+                        "Timestamp": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
+                        "Company": [company_name],
+                        "Contact": [contact_name],
+                        "Email": [contact_email],
+                        "Phone": [contact_phone],
+                        "Licence Count": [st.session_state.num_licences],
+                        "Monthly Licences (£)": [
+                            f"{total_monthly_licences():.2f}"
+                        ],
+                        "Hardware Summary": [hardware_summary],
+                        "Hardware Upfront (£)": [
+                            f"{total_hardware_capex():.2f}"
+                        ],
+                        "Delivery Address": [full_address],
+                        "Notes": [notes],
+                    }
+
+                    df = pd.DataFrame(new_record)
+                    csv_name = "quotes.csv"
+                    if not os.path.isfile(csv_name):
+                        df.to_csv(csv_name, index=False)
+                    else:
+                        df.to_csv(
+                            csv_name, mode="a", header=False, index=False
+                        )
+
+                    st.success(f"Quotation #{quote_ref} saved successfully!")
+                    st.info(
+                        "Click the **💼 Customer Presentation View** tab above to view the formal client breakdown."
+                    )
+
+
+with tab_customer_view:
+    # --- SECTION C: Dedicated Customer Presentation View ---
+    st.markdown("<br>", unsafe_allow_html=True)
+    summary_col1, summary_col2, summary_col3 = st.columns([1, 4, 1])
+
+    with summary_col2:
+        mrc_total = total_monthly_licences()
+        hardware_items = basket_items()
+        capex_total = total_hardware_capex()
+        first_month_outlay = mrc_total + capex_total
+
+        st.markdown(
+            f"""
+            <div class="quote-box">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #E2E8F0; padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <h2 style="color: #0F5A73; margin: 0; font-size: 1.8rem; font-weight: 800;">Telephony Solution Quotation</h2>
+                        <p style="color: #64748B; margin: 0.25rem 0 0 0; font-size: 0.95rem;">Independent Enterprise Communications Proposal</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="background: #E2E8F0; color: #334155; font-size: 0.8rem; padding: 0.35rem 0.75rem; border-radius: 6px; font-weight: 700;">
+                            DATE: {datetime.now().strftime('%d/%m/%Y')}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Headline Totals -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+                    <div class="quote-stat-box">
+                        <div class="quote-stat-num">£{mrc_total:.2f}</div>
+                        <div class="quote-stat-label">Monthly Recurring (Ex VAT)</div>
+                    </div>
+                    <div class="quote-stat-box">
+                        <div class="quote-stat-num">£{capex_total:.2f}</div>
+                        <div class="quote-stat-label">One-off Hardware (Ex VAT)</div>
+                    </div>
+                    <div class="quote-stat-box" style="border-left-color: #38BDF8;">
+                        <div class="quote-stat-num" style="color: #0F172A;">£{first_month_outlay:.2f}</div>
+                        <div class="quote-stat-label">Total Month 1 Outlay</div>
+                    </div>
+                </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Tabular breakdown
+        st.markdown("#### 1. Ongoing Monthly Services (Opex)")
+        if st.session_state.num_licences > 0:
+            st.markdown(
+                f"""
+                | Service Item | Unit Price | Users / Qty | Monthly Total |
+                | :--- | :--- | :--- | :--- |
+                | **Hosted VoIP Cloud User Licence** (Apps, Recording, Inclusive UK Mins) | £{LICENCE_MONTHLY_RATE:.2f} / mo | {st.session_state.num_licences} | **£{mrc_total:.2f} / mo** |
+                """
+            )
+        else:
+            st.caption("No monthly user licences currently selected.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("#### 2. Physical Handsets & Hardware (Capex)")
+        if hardware_items:
+            table_rows = "\n".join(
+                f"| **{i['name']}** - {i['desc']} | £{i['price']:.2f} | {i['qty']} | £{i['line_total']:.2f} |"
+                for i in hardware_items
+            )
+            st.markdown(
+                f"""
+                | Handset Model | Unit Price | Qty | Line Total |
+                | :--- | :--- | :--- | :--- |
+                {table_rows}
+                | **Hardware Subtotal** | | | **£{capex_total:.2f}** |
+                """
+            )
+        else:
+            st.info(
+                "No hardware added. Users can make and take calls using the inclusive Windows, Mac, iOS, and Android softphone applications."
+            )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div style="background-color: #F8FAFC; padding: 1rem 1.25rem; border-radius: 8px; border: 1px dashed #CBD5E1; font-size: 0.85rem; color: #64748B;">
+                <strong>Terms & Notes:</strong> All quotations are subject to standard telecoms terms and valid for 30 days. Prices exclude VAT. Hosted licences operate on rolling 30-day or 12-month agreements. Handset hardware includes manufacturer warranty and plug-and-play pre-provisioning.
+            </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
