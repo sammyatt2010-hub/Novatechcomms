@@ -58,7 +58,7 @@ if not check_password():
     st.stop()
 
 
-# 3. Base64 Image Encoder (Guarantees local images render without server URL issues)
+# 3. Base64 Image Encoder
 @st.cache_data
 def get_base64_image(image_path):
     if os.path.exists(image_path):
@@ -71,7 +71,7 @@ def get_base64_image(image_path):
     return None
 
 
-# 4. High-Contrast Styles
+# 4. High-Contrast Styles + Toast Popup Styling
 st.markdown(
     """
     <style>
@@ -94,6 +94,33 @@ st.markdown(
 
     p, span, label, h1, h2, h3, h4, h5, h6, li, td, th {
         color: #0F172A !important;
+    }
+
+    /* 🚨 POPUP TOAST FIX: Clean White Box, High-Contrast Text & Visible Close Button 🚨 */
+    div[data-testid="stToast"] {
+        background-color: #FFFFFF !important;
+        border: 1.5px solid #0F5A73 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 25px -5px rgba(15, 90, 115, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        padding: 0.85rem 1.1rem !important;
+    }
+    div[data-testid="stToast"] * {
+        color: #0F172A !important;
+    }
+    div[data-testid="stToast"] p {
+        color: #0F172A !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+    }
+    div[data-testid="stToast"] button {
+        color: #64748B !important;
+    }
+    div[data-testid="stToast"] button:hover {
+        color: #0F172A !important;
+    }
+    div[data-testid="stToast"] svg {
+        fill: #0F172A !important;
+        stroke: #0F172A !important;
     }
 
     /* Novalink Brand Banner Card */
@@ -755,7 +782,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     t_clause.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), c_warning_bg),
+                ("BACKGROUND", (0, 0), (-1, 0), c_warning_bg),
                 ("BOX", (0, 0), (-1, -1), 1.2, c_warning_border),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
@@ -896,7 +923,7 @@ with tab_builder:
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 2: Handsets with Guaranteed Base64-Embedded Image Viewports
+    # Step 2: Handsets with Base64 Images
     st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
     hw_cols = st.columns(4, gap="medium")
@@ -916,7 +943,7 @@ with tab_builder:
                 unsafe_allow_html=True,
             )
 
-            # 🚨 Rigid Base64 Image Stage: Equal height, perfectly centered, no blowouts! 🚨
+            # Rigid Base64 Image Stage
             b64_uri = get_base64_image(product["image"])
             if b64_uri:
                 st.markdown(
