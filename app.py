@@ -11,7 +11,7 @@ import streamlit as st
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="Telephony Quotation",
+    page_title="Novalink Telephony Quotation",
     page_icon="📞",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -34,7 +34,7 @@ def check_password():
             <div style="background: #FFFFFF; padding: 2.2rem; border-radius: 14px; border: 1px solid #CBD5E1; text-align: center; box-shadow: 0 4px 12px rgba(15,90,115,0.08);">
                 <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🔒</div>
                 <h3 style="color: #0F5A73; margin: 0 0 0.5rem 0; font-weight: 800;">Authorised Access Only</h3>
-                <p style="color: #64748B; font-size: 0.9rem; margin-bottom: 1.5rem;">Please enter your reseller access key to launch the Telephony Quotation tool.</p>
+                <p style="color: #64748B; font-size: 0.9rem; margin-bottom: 1.5rem;">Please enter your reseller access key to launch the Novalink Telephony Quotation tool.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -83,38 +83,38 @@ st.markdown(
         color: #0F172A !important;
     }
 
-    /* Hero Header Banner */
-    .hero-banner {
-        background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
-        border: 1px solid #E2E8F0;
+    /* Novalink Brand Banner Card */
+    .novalink-banner {
+        background: linear-gradient(135deg, #0F5A73 0%, #164E63 100%);
         border-radius: 16px;
-        padding: 2rem 1.5rem;
+        padding: 2.2rem 1.75rem;
         text-align: center;
         margin-bottom: 2rem;
-        box-shadow: 0 4px 12px -2px rgba(15, 90, 115, 0.05);
+        box-shadow: 0 8px 20px -4px rgba(15, 90, 115, 0.25);
     }
     .brand-tag {
         display: inline-block;
-        background-color: #E0F2FE;
-        color: #0369A1 !important;
-        font-size: 0.78rem;
+        background-color: rgba(255, 255, 255, 0.18);
+        color: #38BDF8 !important;
+        font-size: 0.8rem;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.75px;
-        padding: 4px 14px;
+        letter-spacing: 1px;
+        padding: 5px 16px;
         border-radius: 9999px;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.6rem;
+        border: 1px solid rgba(56, 189, 248, 0.35);
     }
     .brand-title {
-        font-size: 2.5rem;
+        font-size: 2.6rem;
         font-weight: 800;
-        color: #0F5A73 !important;
+        color: #FFFFFF !important;
         letter-spacing: -0.5px;
         margin: 0 0 0.4rem 0;
     }
     .brand-subtitle {
         font-size: 1.1rem;
-        color: #64748B !important;
+        color: #E2E8F0 !important;
         margin: 0;
         font-weight: 400;
     }
@@ -459,8 +459,8 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
         "DocTitle",
         parent=styles["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=20,
-        leading=24,
+        fontSize=19,
+        leading=23,
         textColor=c_primary,
     )
     meta_style = ParagraphStyle(
@@ -510,7 +510,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     hdr = Table(
         [
             [
-                Paragraph("<b>Telephony Quotation</b>", title_style),
+                Paragraph("<b>Novalink Telephony Quotation</b>", title_style),
                 Paragraph(
                     f"<b>Reference:</b> {quote_meta['ref']}<br/>"
                     f"<b>Date:</b> {quote_meta['date']}<br/>"
@@ -780,13 +780,13 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     return buffer.getvalue()
 
 
-# 7. Hero Brand Header
+# 7. Novalink Hero Brand Header Card
 st.markdown(
     """
-    <div class="hero-banner">
-        <span class="brand-tag">Telecoms Reseller Suite</span>
-        <h1 class="brand-title">Telephony Quotation</h1>
-        <p class="brand-subtitle">Interactive white-label quote builder: combine cloud user licences with desktop hardware</p>
+    <div class="novalink-banner">
+        <span class="brand-tag">Novalink Communications</span>
+        <h1 class="brand-title">Novalink Telephony Quotation</h1>
+        <p class="brand-subtitle">Official Partner Portal: Cloud VoIP User Licences &amp; Enterprise Hardware</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -972,7 +972,7 @@ with tab_builder:
         elif not c_company or not c_contact or not c_email:
             st.error("Please fill in the Customer's Company, Contact Name, and Email.")
         else:
-            quote_ref = f"TQ-{datetime.now().strftime('%y%m%d%H%M')}"
+            quote_ref = f"NL-{datetime.now().strftime('%y%m%d%H%M')}"
             quote_date = datetime.now().strftime("%d %B %Y")
             
             addr_parts = [p.strip() for p in [del_addr1, del_city, del_postcode] if p.strip()]
@@ -1012,6 +1012,7 @@ with tab_builder:
             record = {
                 "Quote Ref": [quote_ref],
                 "Date": [quote_date],
+                "Brand": ["Novalink Telephony"],
                 "Reseller": [r_company],
                 "Customer Company": [c_company],
                 "Customer Contact": [c_contact],
@@ -1028,7 +1029,7 @@ with tab_builder:
             else:
                 df.to_csv("quotes.csv", mode="a", header=False, index=False)
 
-            st.success(f"Quotation #{quote_ref} generated successfully with hardware and legal paperwork included!")
+            st.success(f"Quotation #{quote_ref} generated successfully under Novalink Telephony!")
 
     # Download action button
     if "active_quote_pdf" in st.session_state:
@@ -1059,7 +1060,7 @@ with tab_customer_view:
             <div style="background-color: #FFFFFF; border-radius: 14px; border: 2px solid #0F5A73; padding: 2rem; box-shadow: 0 4px 12px rgba(15, 90, 115, 0.08);">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #E2E8F0; padding-bottom: 1.25rem; margin-bottom: 1.5rem;">
                     <div>
-                        <div style="color: #0F5A73; font-size: 1.7rem; font-weight: 800;">Telephony Quotation</div>
+                        <div style="color: #0F5A73; font-size: 1.7rem; font-weight: 800;">Novalink Telephony Quotation</div>
                         <div style="color: #64748B; font-size: 0.95rem; margin-top: 3px;">Unified Communications &amp; Cloud Telephony Solution</div>
                     </div>
                     <div style="text-align: right;">
