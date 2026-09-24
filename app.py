@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. Polished High-Contrast Design Overhaul
+# 2. Polished High-Contrast Design
 st.markdown(
     """
     <style>
@@ -263,26 +263,6 @@ st.markdown(
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04) !important;
     }
 
-    /* Contract Alert Notice Box */
-    .contract-warning-box {
-        background-color: #FFFBEB;
-        border: 1.5px solid #FCD34D;
-        border-left: 6px solid #F59E0B;
-        border-radius: 10px;
-        padding: 1.1rem 1.25rem;
-        margin: 1.5rem 0;
-        color: #92400E;
-    }
-    .contract-warning-title {
-        font-size: 0.95rem;
-        font-weight: 800;
-        color: #B45309;
-        margin-bottom: 0.25rem;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
     /* Native Clean Markdown Tables */
     table {
         width: 100% !important;
@@ -361,7 +341,6 @@ def load_products():
                 data = json.load(f)
             products = data.get("products", [])
             if products:
-                # Merge tags if missing
                 for p in products:
                     if "tag" not in p:
                         match = next((fb for fb in _FALLBACK_PRODUCTS if fb["id"] == p.get("id")), None)
@@ -409,7 +388,7 @@ def total_monthly_licences():
     return st.session_state.num_licences * LICENCE_MONTHLY_RATE
 
 
-# 5. ReportLab PDF Generation Routine (With Strict 24-Month Term & Sign-off Box)
+# 5. ReportLab PDF Generation Routine (Carries Full Contract Notice & Sign-Off)
 def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -691,7 +670,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(t_sum)
     story.append(Spacer(1, 10))
 
-    # 🚨 REQUIRED 24-MONTH CONTRACT CLAUSE BOX 🚨
+    # Contract Termination Clause Box
     clause_text = (
         "<b>IMPORTANT CONTRACTUAL COMMITMENT &amp; TERMINATION TERMS:</b><br/>"
         "All hosted user licences quoted herein are strictly subject to a <b>minimum 24-month agreement term</b>. "
@@ -726,7 +705,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(t_clause)
     story.append(Spacer(1, 10))
 
-    # Acceptance Sign-Off Box
+    # Customer Sign-Off Box
     sign_data = [
         [
             Paragraph("<b>CUSTOMER ACCEPTANCE &amp; AUTHORISATION:</b>", td_bold),
@@ -756,7 +735,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     return buffer.getvalue()
 
 
-# 6. Hero Brand Header Card
+# 6. Hero Brand Header
 st.markdown(
     """
     <div class="hero-banner">
@@ -788,7 +767,7 @@ with tab_builder:
                     </span>
                 </div>
                 <div style="color: #E2E8F0 !important; font-size: 0.88rem; margin: 0.85rem 0 1rem 0;">
-                    Complete unified communications seat with enterprise features included (<strong>24-Month Term</strong>):
+                    Complete unified communications seat with enterprise features included:
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; font-size: 0.85rem; color: #F8FAFC !important;">
                     <div style="color: #FFFFFF !important;">✓ Mobile App (iOS / Android)</div>
@@ -846,7 +825,7 @@ with tab_builder:
         st.metric(
             label="Total Monthly Ongoing Cost",
             value=f"£{total_monthly_licences():.2f}/mo",
-            delta=f"{st.session_state.num_licences} users @ £{LICENCE_MONTHLY_RATE:.2f} (24mo)",
+            delta=f"{st.session_state.num_licences} users @ £{LICENCE_MONTHLY_RATE:.2f}",
         )
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
@@ -890,7 +869,7 @@ with tab_builder:
                 st.toast(f"Added {qty}x {product['name']}", icon="✅")
                 st.rerun()
 
-    # Hardware Basket with High-Contrast Expander
+    # Hardware Basket Expander
     hw_list = basket_items()
     if hw_list:
         st.markdown("<br>", unsafe_allow_html=True)
@@ -938,17 +917,6 @@ with tab_builder:
             del_city = st.text_input("Town / City")
         with d3:
             del_postcode = st.text_input("Postcode")
-
-        # Visual note on the form regarding 24-month contract
-        st.markdown(
-            """
-            <div class="contract-warning-box">
-                <div class="contract-warning-title">⚠️ Mandatory 24-Month Agreement Term</div>
-                <div>User licences are subject to a minimum 24-month contract. Early termination fees will apply in full for the unexpired term upon cancellation. This clause is codified automatically on the produced PDF quotation.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
         generate_submitted = st.form_submit_button(
             "💾 Save Quotation & Generate Official PDF", use_container_width=True
@@ -1009,7 +977,6 @@ with tab_builder:
                 "Hardware Summary": [hw_summary],
                 "Hardware Total (£)": [f"{total_hardware_capex():.2f}"],
                 "Delivery Address": [full_delivery],
-                "Contract Term": ["24 Months Minimum"],
             }
             df = pd.DataFrame(record)
             if not os.path.isfile("quotes.csv"):
@@ -1017,7 +984,7 @@ with tab_builder:
             else:
                 df.to_csv("quotes.csv", mode="a", header=False, index=False)
 
-            st.success(f"Quotation #{quote_ref} generated successfully with 24-month contract terms and hardware included!")
+            st.success(f"Quotation #{quote_ref} generated successfully with hardware and legal paperwork included!")
 
     # Download action button
     if "active_quote_pdf" in st.session_state:
@@ -1052,10 +1019,9 @@ with tab_customer_view:
                         <div style="color: #64748B; font-size: 0.95rem; margin-top: 3px;">Unified Communications &amp; Cloud Telephony Solution</div>
                     </div>
                     <div style="text-align: right;">
-                        <span style="background: #E0F2FE; color: #0369A1; font-weight: 700; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; display: inline-block; margin-bottom: 4px;">
+                        <span style="background: #E0F2FE; color: #0369A1; font-weight: 700; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; display: inline-block;">
                             {datetime.now().strftime('%d %B %Y')}
                         </span>
-                        <div style="font-size: 0.78rem; font-weight: 700; color: #B45309;">24-Month Term</div>
                     </div>
                 </div>
             </div>
@@ -1088,9 +1054,9 @@ with tab_customer_view:
         if st.session_state.num_licences > 0:
             st.markdown(
                 f"""
-| Service Description | Quantity | Agreement Term | Unit Price | Monthly Total |
-| :--- | :---: | :---: | :---: | :---: |
-| **Hosted VoIP Cloud User Licence** (Apps, Call Recording, Inclusive UK Mins) | {st.session_state.num_licences} Users | **24 Months** | £{LICENCE_MONTHLY_RATE:.2f} / mo | **£{mrc:.2f} / mo** |
+| Service Description | Quantity | Unit Price | Monthly Total |
+| :--- | :---: | :---: | :---: |
+| **Hosted VoIP Cloud User Licence** (Apps, Call Recording, Inclusive UK Mins) | {st.session_state.num_licences} Users | £{LICENCE_MONTHLY_RATE:.2f} / mo | **£{mrc:.2f} / mo** |
 """
             )
         else:
@@ -1113,12 +1079,11 @@ with tab_customer_view:
                 "App-only deployment selected (No physical desktop hardware). Users will utilise PC/Mac and mobile smartphone apps."
             )
 
-        # Presentation View 24-Month Notice
+        # Standard Commercial Terms Note (Clean & subtle)
         st.markdown(
             """
-            <div class="contract-warning-box">
-                <div class="contract-warning-title">📜 Commercial Contract Term &amp; Conditions</div>
-                <div>All hosted licences quoted are subject to a minimum <strong>24-month contract agreement</strong>. Early termination charges will apply in full for the unexpired balance of the contract term if services are cancelled prior to the 24-month period. Quotation valid for 30 days. Prices exclude VAT.</div>
+            <div style="background-color: #F8FAFC; border: 1px dashed #CBD5E1; padding: 1rem 1.25rem; border-radius: 8px; font-size: 0.85rem; color: #64748B; margin-top: 1rem;">
+                <strong>Commercial Notes:</strong> Quotation valid for 30 calendar days. All prices exclude VAT. Pre-configured handsets include power adapters, desk stands, and lifetime manufacturer hardware warranties. Formal terms and contractual commitments are detailed on the generated agreement paperwork.
             </div>
             """,
             unsafe_allow_html=True,
