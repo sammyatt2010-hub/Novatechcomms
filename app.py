@@ -17,7 +17,48 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. Polished High-Contrast Design
+# 2. Authentication Gate
+def check_password():
+    """Returns True if user enters the correct password."""
+    if st.session_state.get("authenticated", False):
+        return True
+
+    # Pull password from Streamlit secrets, or use fallback
+    configured_password = st.secrets.get("APP_PASSWORD", "araconnect")
+
+    _, col_login, _ = st.columns([1, 1.2, 1])
+    with col_login:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div style="background: #FFFFFF; padding: 2.2rem; border-radius: 14px; border: 1px solid #CBD5E1; text-align: center; box-shadow: 0 4px 12px rgba(15,90,115,0.08);">
+                <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🔒</div>
+                <h3 style="color: #0F5A73; margin: 0 0 0.5rem 0; font-weight: 800;">Authorised Access Only</h3>
+                <p style="color: #64748B; font-size: 0.9rem; margin-bottom: 1.5rem;">Please enter your reseller access key to launch the Telephony Quotation tool.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        with st.form("login_form"):
+            password_attempt = st.text_input("Access Password", type="password", placeholder="Enter password...")
+            submitted = st.form_submit_button("Unlock Portal", use_container_width=True)
+
+            if submitted:
+                if password_attempt == configured_password:
+                    st.session_state["authenticated"] = True
+                    st.rerun()
+                else:
+                    st.error("Incorrect password. Please try again.")
+
+    return False
+
+
+if not check_password():
+    st.stop()
+
+
+# 3. Polished High-Contrast Design
 st.markdown(
     """
     <style>
@@ -213,7 +254,7 @@ st.markdown(
         font-size: 1.05rem !important;
     }
 
-    /* Action Buttons (Submit & Download) */
+    /* Action Buttons */
     .stButton > button,
     div[data-testid="stFormSubmitButton"] > button,
     div[data-testid="stDownloadButton"] > button {
@@ -296,7 +337,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 3. Product Catalogue & Defaults
+# 4. Product Catalogue & Defaults
 LICENCE_MONTHLY_RATE = 7.00
 MIN_CONTRACT_MONTHS = 24
 CATALOGUE_FILE = "catalogue.json"
@@ -357,7 +398,7 @@ def load_products():
 
 PRODUCTS = load_products()
 
-# 4. Session State Setup
+# 5. Session State Setup
 if "basket" not in st.session_state:
     st.session_state.basket = {}
 
@@ -392,7 +433,7 @@ def total_monthly_licences():
     return st.session_state.num_licences * LICENCE_MONTHLY_RATE
 
 
-# 5. ReportLab PDF Generation Routine (Carries Full Contract Notice & Sign-Off)
+# 6. ReportLab PDF Generation Routine
 def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -739,7 +780,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     return buffer.getvalue()
 
 
-# 6. Hero Brand Header
+# 7. Hero Brand Header
 st.markdown(
     """
     <div class="hero-banner">
@@ -751,7 +792,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 7. Navigation Tabs
+# 8. Navigation Tabs
 tab_builder, tab_customer_view = st.tabs(["🛠️ Build Quotation", "💼 Customer Presentation View"])
 
 # --- TAB 1: BUILD QUOTATION ---
@@ -799,7 +840,6 @@ with tab_builder:
         )
         st.session_state.num_licences = selected_licences
 
-        # Preset selection buttons
         p1, p2, p3, p4 = st.columns(4)
         with p1:
             st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
@@ -892,7 +932,7 @@ with tab_builder:
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 3: Reseller & Customer Quote Form (All Blank Inputs)
+    # Step 3: Blank Quote Form
     st.markdown('<div class="section-headline"><span>Step 3:</span> Quotation Details & PDF Generation</div>', unsafe_allow_html=True)
 
     with st.form(key="telephony_quote_form"):
@@ -900,9 +940,9 @@ with tab_builder:
 
         with col_reseller:
             st.markdown("#### 🏢 Your Company Details (Service Provider)")
-            r_company = st.text_input("Your Company / Reseller Name*", placeholder="e.g. Telecoms Partner Ltd")
-            r_contact = st.text_input("Your Name / Account Manager*", placeholder="e.g. Sam Myatt")
-            r_email = st.text_input("Your Email Address*", placeholder="e.g. sales@yourtelecoms.co.uk")
+            r_company = st.text_input("Your Company / Reseller Name*", placeholder="e.g. Acme Communications Ltd")
+            r_contact = st.text_input("Your Name / Account Manager*", placeholder="e.g. John Doe")
+            r_email = st.text_input("Your Email Address*", placeholder="e.g. sales@acmecomms.co.uk")
             r_phone = st.text_input("Your Phone Number", placeholder="e.g. 0330 123 4567")
 
         with col_customer:
@@ -1083,7 +1123,6 @@ with tab_customer_view:
                 "App-only deployment selected (No physical desktop hardware). Users will utilise PC/Mac and mobile smartphone apps."
             )
 
-        # Standard Commercial Terms Note (Clean & subtle)
         st.markdown(
             """
             <div style="background-color: #F8FAFC; border: 1px dashed #CBD5E1; padding: 1rem 1.25rem; border-radius: 8px; font-size: 0.85rem; color: #64748B; margin-top: 1rem;">
