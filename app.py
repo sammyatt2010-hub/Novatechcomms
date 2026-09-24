@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. Strict CSS: Fixes Black Input Boxes, Black Buttons, & Contrast Everywhere
+# 2. Precision CSS (Explicitly Styles Steppers, Icons, Expanders, and Action Buttons)
 st.markdown(
     """
     <style>
@@ -38,7 +38,7 @@ st.markdown(
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
-    /* Force all standard text tags dark */
+    /* Force standard typography dark */
     p, span, label, h1, h2, h3, h4, h5, h6, li, td, th {
         color: #0F172A !important;
     }
@@ -95,55 +95,141 @@ st.markdown(
         background: #FFFFFF !important;
     }
 
-    /* 🚨 BULLETPROOF FIX: Form inputs & Number Steppers (No more black boxes) 🚨 */
-    div[data-baseweb="input"],
-    div[data-baseweb="base-input"],
-    div[data-baseweb="input"] > div,
-    .stTextInput > div > div,
-    .stNumberInput > div > div {
+    /* 🚨 1. NUMBER INPUTS & STEPPER FIX (VISIBLE NUMBERS & ICONS) 🚨 */
+    div[data-testid="stNumberInput"] {
+        background-color: #FFFFFF !important;
+    }
+    div[data-testid="stNumberInput"] div[data-baseweb="input"] {
+        background-color: #FFFFFF !important;
+        border: 1.5px solid #94A3B8 !important;
+        border-radius: 8px !important;
+    }
+    div[data-testid="stNumberInput"] input {
+        color: #0F172A !important;
+        -webkit-text-fill-color: #0F172A !important;
+        background-color: #FFFFFF !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        text-align: center !important;
+    }
+    /* Plus and Minus Stepper Buttons */
+    div[data-testid="stNumberInput"] button {
+        background-color: #F1F5F9 !important;
+        border: 1px solid #CBD5E1 !important;
+        color: #0F172A !important;
+    }
+    div[data-testid="stNumberInput"] button:hover {
+        background-color: #E2E8F0 !important;
+    }
+    div[data-testid="stNumberInput"] button svg {
+        fill: #0F172A !important;
+        stroke: #0F172A !important;
+        color: #0F172A !important;
+    }
+
+    /* Standard Text Inputs */
+    div[data-testid="stTextInput"] div[data-baseweb="input"] {
         background-color: #FFFFFF !important;
         border: 1.5px solid #CBD5E1 !important;
         border-radius: 8px !important;
-        color: #0F172A !important;
     }
-    div[data-baseweb="input"] input,
-    input.st-bc {
-        background-color: #FFFFFF !important;
+    div[data-testid="stTextInput"] input {
         color: #0F172A !important;
         -webkit-text-fill-color: #0F172A !important;
-        font-weight: 600 !important;
+        background-color: #FFFFFF !important;
+        font-weight: 500 !important;
     }
-    input::placeholder {
+    div[data-testid="stTextInput"] input::placeholder {
         color: #94A3B8 !important;
         -webkit-text-fill-color: #94A3B8 !important;
     }
 
-    /* 🚨 BULLETPROOF FIX: Buttons & Download buttons (Always Teal with White Text) 🚨 */
+    /* 🚨 2. EXPANDER / BASKET DROPDOWN FIX (CLEAN TEAL ACCENT, NO BLACK) 🚨 */
+    div[data-testid="stExpander"] {
+        background-color: #FFFFFF !important;
+        border: 1.5px solid #0F5A73 !important;
+        border-radius: 10px !important;
+        overflow: hidden;
+    }
+    div[data-testid="stExpander"] details {
+        background-color: #FFFFFF !important;
+    }
+    div[data-testid="stExpander"] summary {
+        background-color: #F8FAFC !important;
+        color: #0F5A73 !important;
+        font-weight: 700 !important;
+        padding: 0.75rem 1rem !important;
+        border-bottom: 1px solid #E2E8F0 !important;
+    }
+    div[data-testid="stExpander"] summary:hover {
+        background-color: #F1F5F9 !important;
+    }
+    div[data-testid="stExpander"] summary svg {
+        fill: #0F5A73 !important;
+    }
+    div[data-testid="stExpander"] summary p,
+    div[data-testid="stExpander"] summary span {
+        color: #0F5A73 !important;
+        font-weight: 800 !important;
+        font-size: 1.05rem !important;
+    }
+
+    /* 🚨 3. ALL BUTTONS & FORM SUBMIT (ALWAYS DEEP TEAL WITH WHITE TEXT) 🚨 */
     .stButton > button,
-    .stDownloadButton > button {
+    .stFormSubmitButton > button,
+    div[data-testid="stFormSubmitButton"] > button,
+    .stDownloadButton > button,
+    div[data-testid="stDownloadButton"] > button {
         background-color: #0F5A73 !important;
         color: #FFFFFF !important;
         border-radius: 8px !important;
         font-weight: 700 !important;
         border: none !important;
         padding: 0.65rem 1.25rem !important;
-        box-shadow: 0 2px 4px rgba(15, 90, 115, 0.15) !important;
+        box-shadow: 0 2px 4px rgba(15, 90, 115, 0.2) !important;
+        transition: background-color 0.15s ease-in-out !important;
     }
     .stButton > button:hover,
-    .stDownloadButton > button:hover {
-        background-color: #0B4457 !important;
+    .stFormSubmitButton > button:hover,
+    div[data-testid="stFormSubmitButton"] > button:hover,
+    .stDownloadButton > button:hover,
+    div[data-testid="stDownloadButton"] > button:hover {
+        background-color: #0c485c !important;
         color: #FFFFFF !important;
     }
-    .stButton > button *,
-    .stDownloadButton > button * {
+    .stButton > button p,
+    .stFormSubmitButton > button p,
+    div[data-testid="stFormSubmitButton"] > button p,
+    .stDownloadButton > button p,
+    div[data-testid="stDownloadButton"] > button p,
+    .stButton > button span,
+    .stFormSubmitButton > button span,
+    div[data-testid="stFormSubmitButton"] > button span,
+    .stDownloadButton > button span,
+    div[data-testid="stDownloadButton"] > button span {
         color: #FFFFFF !important;
     }
 
-    /* Form Card Container */
+    /* Preset Buttons in Licence Section (Light Teal Pills) */
+    .preset-btn > div > button {
+        background-color: #E0F2FE !important;
+        color: #0369A1 !important;
+        border: 1px solid #BAE6FD !important;
+        font-weight: 700 !important;
+        box-shadow: none !important;
+    }
+    .preset-btn > div > button p {
+        color: #0369A1 !important;
+    }
+    .preset-btn > div > button:hover {
+        background-color: #BAE6FD !important;
+    }
+
+    /* Form Container */
     .stForm {
         background-color: #FFFFFF !important;
         border-radius: 14px !important;
-        border: 1px solid #E2E8F0 !important;
+        border: 1px solid #CBD5E1 !important;
         padding: 2rem !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04) !important;
     }
@@ -328,7 +414,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
 
     story = []
 
-    # Title & Metadata
+    # Header Row
     hdr = Table(
         [
             [
@@ -354,7 +440,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
         )
     )
 
-    # Provider & Customer Panels
+    # Provider & Customer Info
     addr_line = (
         f"Delivery: {customer['delivery']}<br/>"
         if customer["delivery"] and customer["delivery"] != "N/A"
@@ -598,23 +684,37 @@ with tab_builder:
             max_value=500,
             value=st.session_state.num_licences,
             step=1,
+            key="licence_counter",
             label_visibility="collapsed",
         )
         st.session_state.num_licences = selected_licences
 
+        # Preset selection buttons wrapped in custom container class
         p1, p2, p3, p4 = st.columns(4)
-        if p1.button("5 Users"):
-            st.session_state.num_licences = 5
-            st.rerun()
-        if p2.button("10 Users"):
-            st.session_state.num_licences = 10
-            st.rerun()
-        if p3.button("20 Users"):
-            st.session_state.num_licences = 20
-            st.rerun()
-        if p4.button("50 Users"):
-            st.session_state.num_licences = 50
-            st.rerun()
+        with p1:
+            st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
+            if st.button("5 Users", key="preset_5"):
+                st.session_state.num_licences = 5
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        with p2:
+            st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
+            if st.button("10 Users", key="preset_10"):
+                st.session_state.num_licences = 10
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        with p3:
+            st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
+            if st.button("20 Users", key="preset_20"):
+                st.session_state.num_licences = 20
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        with p4:
+            st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
+            if st.button("50 Users", key="preset_50"):
+                st.session_state.num_licences = 50
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
         st.metric(
             label="Total Monthly Ongoing Cost",
@@ -668,6 +768,7 @@ with tab_builder:
                 st.toast(f"Added {qty}x {product['name']}", icon="✅")
                 st.rerun()
 
+    # Hardware Basket with High-Contrast Expander
     hw_list = basket_items()
     if hw_list:
         st.markdown("<br>", unsafe_allow_html=True)
@@ -729,7 +830,6 @@ with tab_builder:
             quote_ref = f"TQ-{datetime.now().strftime('%y%m%d%H%M')}"
             quote_date = datetime.now().strftime("%d %B %Y")
             
-            # Format delivery address if provided, otherwise N/A
             addr_parts = [p.strip() for p in [del_addr1, del_city, del_postcode] if p.strip()]
             full_delivery = ", ".join(addr_parts) if addr_parts else "N/A"
 
@@ -748,7 +848,6 @@ with tab_builder:
             }
             quote_meta = {"ref": quote_ref, "date": quote_date}
 
-            # Generate PDF with current basket hardware
             pdf_bytes = generate_quotation_pdf(
                 quote_meta,
                 reseller_info,
@@ -786,7 +885,9 @@ with tab_builder:
 
             st.success(f"Quotation #{quote_ref} generated successfully with all items included!")
 
+    # Visible, high-contrast download button
     if "active_quote_pdf" in st.session_state:
+        st.markdown("<br>", unsafe_allow_html=True)
         st.download_button(
             label=f"⬇️ Download Official PDF Document ({st.session_state.active_quote_ref}.pdf)",
             data=st.session_state.active_quote_pdf,
@@ -827,7 +928,7 @@ with tab_customer_view:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # 3 Pillar Summary using Native Columns
+        # 3 Pillar Summary
         kpi1, kpi2, kpi3 = st.columns(3)
         with kpi1:
             st.metric(
