@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. Precision CSS (Explicitly Styles Steppers, Icons, Expanders, and Action Buttons)
+# 2. Polished High-Contrast Design Overhaul
 st.markdown(
     """
     <style>
@@ -38,67 +38,115 @@ st.markdown(
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
-    /* Force standard typography dark */
     p, span, label, h1, h2, h3, h4, h5, h6, li, td, th {
         color: #0F172A !important;
     }
 
+    /* Hero Header Banner */
+    .hero-banner {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px -2px rgba(15, 90, 115, 0.05);
+    }
+    .brand-tag {
+        display: inline-block;
+        background-color: #E0F2FE;
+        color: #0369A1 !important;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.75px;
+        padding: 4px 14px;
+        border-radius: 9999px;
+        margin-bottom: 0.75rem;
+    }
     .brand-title {
-        font-size: 2.3rem;
+        font-size: 2.5rem;
         font-weight: 800;
         color: #0F5A73 !important;
-        text-align: center;
-        margin-bottom: 0.2rem;
+        letter-spacing: -0.5px;
+        margin: 0 0 0.4rem 0;
     }
     .brand-subtitle {
-        font-size: 1.05rem;
-        color: #475569 !important;
-        text-align: center;
-        margin-bottom: 1.5rem;
+        font-size: 1.1rem;
+        color: #64748B !important;
+        margin: 0;
+        font-weight: 400;
     }
 
-    /* TABS */
+    /* Tabs Styling */
     button[data-baseweb="tab"] {
         background-color: transparent !important;
         border: none !important;
-        padding: 10px 24px !important;
+        padding: 12px 28px !important;
     }
     button[data-baseweb="tab"] div, 
     button[data-baseweb="tab"] p {
         font-size: 1.05rem !important;
         font-weight: 700 !important;
-        color: #475569 !important;
+        color: #64748B !important;
     }
     button[data-baseweb="tab"][aria-selected="true"] {
-        border-bottom: 3px solid #0F5A73 !important;
+        border-bottom: 3.5px solid #0F5A73 !important;
     }
     button[data-baseweb="tab"][aria-selected="true"] div,
     button[data-baseweb="tab"][aria-selected="true"] p {
         color: #0F5A73 !important;
     }
 
-    /* HARDWARE PRODUCT CARDS */
+    /* Section Subheadings */
+    .section-headline {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #0F5A73 !important;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Hardware Cards */
     div[data-testid="column"] {
         background-color: #FFFFFF !important;
-        border-radius: 12px;
-        padding: 1.1rem !important;
+        border-radius: 14px;
+        padding: 1.25rem !important;
         border: 1px solid #E2E8F0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    div[data-testid="column"]:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 10px 15px -3px rgba(15, 90, 115, 0.08);
     }
     div[data-testid="column"] img {
-        height: 140px !important;
-        max-height: 140px !important;
+        height: 145px !important;
+        max-height: 145px !important;
         width: 100% !important;
         object-fit: contain !important;
-        margin: 0.5rem auto !important;
+        margin: 0.6rem auto !important;
         display: block !important;
         background: #FFFFFF !important;
     }
 
-    /* 🚨 1. NUMBER INPUTS & STEPPER FIX (VISIBLE NUMBERS & ICONS) 🚨 */
-    div[data-testid="stNumberInput"] {
-        background-color: #FFFFFF !important;
+    /* Card Badge */
+    .card-badge {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #0F5A73 !important;
+        background: #F0F9FF;
+        border: 1px solid #BAE6FD;
+        padding: 3px 10px;
+        border-radius: 6px;
+        display: inline-block;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
+
+    /* Number Steppers & Inputs */
     div[data-testid="stNumberInput"] div[data-baseweb="input"] {
         background-color: #FFFFFF !important;
         border: 1.5px solid #94A3B8 !important;
@@ -112,7 +160,6 @@ st.markdown(
         font-size: 1rem !important;
         text-align: center !important;
     }
-    /* Plus and Minus Stepper Buttons */
     div[data-testid="stNumberInput"] button {
         background-color: #F1F5F9 !important;
         border: 1px solid #CBD5E1 !important;
@@ -127,7 +174,7 @@ st.markdown(
         color: #0F172A !important;
     }
 
-    /* Standard Text Inputs */
+    /* Text Inputs */
     div[data-testid="stTextInput"] div[data-baseweb="input"] {
         background-color: #FFFFFF !important;
         border: 1.5px solid #CBD5E1 !important;
@@ -139,30 +186,18 @@ st.markdown(
         background-color: #FFFFFF !important;
         font-weight: 500 !important;
     }
-    div[data-testid="stTextInput"] input::placeholder {
-        color: #94A3B8 !important;
-        -webkit-text-fill-color: #94A3B8 !important;
-    }
 
-    /* 🚨 2. EXPANDER / BASKET DROPDOWN FIX (CLEAN TEAL ACCENT, NO BLACK) 🚨 */
+    /* Expander / Basket */
     div[data-testid="stExpander"] {
         background-color: #FFFFFF !important;
         border: 1.5px solid #0F5A73 !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         overflow: hidden;
-    }
-    div[data-testid="stExpander"] details {
-        background-color: #FFFFFF !important;
+        box-shadow: 0 4px 6px -1px rgba(15, 90, 115, 0.05);
     }
     div[data-testid="stExpander"] summary {
         background-color: #F8FAFC !important;
-        color: #0F5A73 !important;
-        font-weight: 700 !important;
-        padding: 0.75rem 1rem !important;
-        border-bottom: 1px solid #E2E8F0 !important;
-    }
-    div[data-testid="stExpander"] summary:hover {
-        background-color: #F1F5F9 !important;
+        padding: 0.85rem 1.25rem !important;
     }
     div[data-testid="stExpander"] summary svg {
         fill: #0F5A73 !important;
@@ -174,83 +209,103 @@ st.markdown(
         font-size: 1.05rem !important;
     }
 
-    /* 🚨 3. ALL BUTTONS & FORM SUBMIT (ALWAYS DEEP TEAL WITH WHITE TEXT) 🚨 */
+    /* Action Buttons (Submit & Download) */
     .stButton > button,
-    .stFormSubmitButton > button,
     div[data-testid="stFormSubmitButton"] > button,
-    .stDownloadButton > button,
     div[data-testid="stDownloadButton"] > button {
-        background-color: #0F5A73 !important;
+        background: linear-gradient(135deg, #0F5A73 0%, #164E63 100%) !important;
         color: #FFFFFF !important;
-        border-radius: 8px !important;
+        border-radius: 10px !important;
         font-weight: 700 !important;
         border: none !important;
-        padding: 0.65rem 1.25rem !important;
-        box-shadow: 0 2px 4px rgba(15, 90, 115, 0.2) !important;
-        transition: background-color 0.15s ease-in-out !important;
+        padding: 0.75rem 1.5rem !important;
+        box-shadow: 0 4px 10px rgba(15, 90, 115, 0.25) !important;
+        transition: all 0.2s ease !important;
     }
     .stButton > button:hover,
-    .stFormSubmitButton > button:hover,
     div[data-testid="stFormSubmitButton"] > button:hover,
-    .stDownloadButton > button:hover,
     div[data-testid="stDownloadButton"] > button:hover {
-        background-color: #0c485c !important;
-        color: #FFFFFF !important;
+        box-shadow: 0 6px 14px rgba(15, 90, 115, 0.35) !important;
+        transform: translateY(-1px);
     }
     .stButton > button p,
-    .stFormSubmitButton > button p,
     div[data-testid="stFormSubmitButton"] > button p,
-    .stDownloadButton > button p,
     div[data-testid="stDownloadButton"] > button p,
     .stButton > button span,
-    .stFormSubmitButton > button span,
     div[data-testid="stFormSubmitButton"] > button span,
-    .stDownloadButton > button span,
     div[data-testid="stDownloadButton"] > button span {
         color: #FFFFFF !important;
     }
 
-    /* Preset Buttons in Licence Section (Light Teal Pills) */
+    /* Preset User Quick-Select Pills */
     .preset-btn > div > button {
-        background-color: #E0F2FE !important;
-        color: #0369A1 !important;
-        border: 1px solid #BAE6FD !important;
+        background: #F1F5F9 !important;
+        color: #0F5A73 !important;
+        border: 1px solid #CBD5E1 !important;
         font-weight: 700 !important;
         box-shadow: none !important;
+        padding: 0.4rem 0.6rem !important;
     }
     .preset-btn > div > button p {
-        color: #0369A1 !important;
+        color: #0F5A73 !important;
     }
     .preset-btn > div > button:hover {
-        background-color: #BAE6FD !important;
+        background: #E0F2FE !important;
+        border-color: #38BDF8 !important;
     }
 
     /* Form Container */
     .stForm {
         background-color: #FFFFFF !important;
-        border-radius: 14px !important;
-        border: 1px solid #CBD5E1 !important;
-        padding: 2rem !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04) !important;
+        border-radius: 16px !important;
+        border: 1px solid #E2E8F0 !important;
+        padding: 2.25rem !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04) !important;
     }
 
-    /* Clean Native Markdown Tables */
+    /* Contract Alert Notice Box */
+    .contract-warning-box {
+        background-color: #FFFBEB;
+        border: 1.5px solid #FCD34D;
+        border-left: 6px solid #F59E0B;
+        border-radius: 10px;
+        padding: 1.1rem 1.25rem;
+        margin: 1.5rem 0;
+        color: #92400E;
+    }
+    .contract-warning-title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #B45309;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Native Clean Markdown Tables */
     table {
         width: 100% !important;
         border-collapse: collapse !important;
-        margin-top: 0.5rem !important;
-        margin-bottom: 1.5rem !important;
+        margin: 0.75rem 0 1.5rem 0 !important;
+        border-radius: 8px;
+        overflow: hidden;
     }
     th {
         background-color: #0F5A73 !important;
         color: #FFFFFF !important;
-        padding: 10px 12px !important;
+        padding: 12px 14px !important;
         text-align: left !important;
+        font-size: 0.9rem !important;
     }
     td {
-        padding: 10px 12px !important;
+        padding: 12px 14px !important;
         border-bottom: 1px solid #E2E8F0 !important;
         color: #0F172A !important;
+        font-size: 0.9rem !important;
+    }
+    tr:nth-child(even) td {
+        background-color: #F8FAFC !important;
     }
     </style>
 """,
@@ -259,34 +314,39 @@ st.markdown(
 
 # 3. Product Catalogue & Defaults
 LICENCE_MONTHLY_RATE = 7.00
+MIN_CONTRACT_MONTHS = 24
 CATALOGUE_FILE = "catalogue.json"
 
 _FALLBACK_PRODUCTS = [
     {
         "id": "v67",
+        "tag": "Flagship Touch",
         "name": "Executive V67",
-        "desc": "Flagship 7-inch touch console with HD video and Wi-Fi",
+        "desc": "7-inch adjustable touch screen with HD video and built-in Wi-Fi / Bluetooth",
         "image": "Fanvil V67.webp",
         "price": 189.00,
     },
     {
         "id": "v66pro",
+        "tag": "Executive Audio",
         "name": "Premium V66 Pro",
-        "desc": "Multi-line audio console with adjustable colour display",
+        "desc": "Multi-line executive audio console with dual-screen colour display and Gigabit PoE",
         "image": "V66 Pro.webp",
         "price": 129.00,
     },
     {
         "id": "v62pro",
+        "tag": "Standard Desk",
         "name": "Essential V62 Pro",
-        "desc": "Standard desktop phone with Gigabit PoE and 6 SIP lines",
+        "desc": "High-durability office desktop phone with 6 SIP lines and crystal-clear HD audio",
         "image": "Fanvil V62 Pro.png",
         "price": 89.00,
     },
     {
         "id": "w620w",
+        "tag": "Rugged Cordless",
         "name": "Linkvil Rugged",
-        "desc": "Heavy-duty drop-proof roaming handset with Wi-Fi 6",
+        "desc": "IP67 waterproof & drop-proof wireless roaming handset with 15h talk time",
         "image": "Linkvil W620W Rugged.png",
         "price": 149.00,
     },
@@ -301,6 +361,11 @@ def load_products():
                 data = json.load(f)
             products = data.get("products", [])
             if products:
+                # Merge tags if missing
+                for p in products:
+                    if "tag" not in p:
+                        match = next((fb for fb in _FALLBACK_PRODUCTS if fb["id"] == p.get("id")), None)
+                        p["tag"] = match["tag"] if match else "Handset"
                 return products
         except (json.JSONDecodeError, OSError):
             pass
@@ -309,7 +374,7 @@ def load_products():
 
 PRODUCTS = load_products()
 
-# 4. State Handlers
+# 4. Session State Setup
 if "basket" not in st.session_state:
     st.session_state.basket = {}
 
@@ -344,7 +409,7 @@ def total_monthly_licences():
     return st.session_state.num_licences * LICENCE_MONTHLY_RATE
 
 
-# 5. ReportLab PDF Generation Routine
+# 5. ReportLab PDF Generation Routine (With Strict 24-Month Term & Sign-off Box)
 def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -352,8 +417,8 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
         pagesize=letter,
         rightMargin=36,
         leftMargin=36,
-        topMargin=36,
-        bottomMargin=36,
+        topMargin=32,
+        bottomMargin=32,
     )
     styles = getSampleStyleSheet()
 
@@ -362,6 +427,9 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     c_dark = colors.HexColor("#0F172A")
     c_bg = colors.HexColor("#F8FAFC")
     c_border = colors.HexColor("#CBD5E1")
+    c_warning_bg = colors.HexColor("#FFFBEB")
+    c_warning_border = colors.HexColor("#F59E0B")
+    c_warning_text = colors.HexColor("#92400E")
 
     title_style = ParagraphStyle(
         "DocTitle",
@@ -375,57 +443,59 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
         "MetaText",
         parent=styles["Normal"],
         fontName="Helvetica",
-        fontSize=9,
-        leading=13,
+        fontSize=8.5,
+        leading=12,
         textColor=c_slate,
     )
     sec_head = ParagraphStyle(
         "SectionHeader",
         parent=styles["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=11,
-        leading=15,
+        fontSize=10.5,
+        leading=14,
         textColor=c_primary,
     )
     th_style = ParagraphStyle(
         "TH",
         parent=styles["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=9,
-        leading=12,
+        fontSize=8.5,
+        leading=11,
         textColor=colors.white,
     )
     td_style = ParagraphStyle(
         "TD",
         parent=styles["Normal"],
         fontName="Helvetica",
-        fontSize=9,
-        leading=12,
+        fontSize=8.5,
+        leading=11.5,
         textColor=c_dark,
     )
     td_bold = ParagraphStyle(
         "TDB",
         parent=styles["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=9,
-        leading=12,
+        fontSize=8.5,
+        leading=11.5,
         textColor=c_dark,
     )
 
     story = []
 
-    # Header Row
+    # Title & Metadata
     hdr = Table(
         [
             [
                 Paragraph("<b>Telephony Quotation</b>", title_style),
                 Paragraph(
-                    f"<b>Reference:</b> {quote_meta['ref']}<br/><b>Date:</b> {quote_meta['date']}",
+                    f"<b>Reference:</b> {quote_meta['ref']}<br/>"
+                    f"<b>Date:</b> {quote_meta['date']}<br/>"
+                    f"<b>Contract Term:</b> <b>24 Months Minimum</b>",
                     meta_style,
                 ),
             ]
         ],
-        colWidths=[360, 180],
+        colWidths=[350, 190],
     )
     hdr.setStyle(
         TableStyle(
@@ -433,16 +503,16 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
         )
     )
     story.append(hdr)
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 8))
     story.append(
         HRFlowable(
-            width="100%", thickness=1.5, color=c_primary, spaceAfter=12, spaceBefore=0
+            width="100%", thickness=1.5, color=c_primary, spaceAfter=10, spaceBefore=0
         )
     )
 
-    # Provider & Customer Info
+    # Provider & Customer Panels
     addr_line = (
-        f"Delivery: {customer['delivery']}<br/>"
+        f"Site/Delivery: {customer['delivery']}<br/>"
         if customer["delivery"] and customer["delivery"] != "N/A"
         else ""
     )
@@ -454,16 +524,16 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
         [
             Paragraph(
                 f"<b>{reseller['company']}</b><br/>"
-                f"Contact: {reseller['name']}<br/>"
+                f"Account Manager: {reseller['name']}<br/>"
                 f"Email: {reseller['email']}<br/>"
-                f"Phone: {reseller['phone']}",
+                f"Telephone: {reseller['phone']}",
                 td_style,
             ),
             Paragraph(
                 f"<b>{customer['company']}</b><br/>"
-                f"Contact: {customer['name']}<br/>"
+                f"Contact Name: {customer['name']}<br/>"
                 f"Email: {customer['email']}<br/>"
-                f"Phone: {customer['phone']}<br/>"
+                f"Telephone: {customer['phone']}<br/>"
                 f"{addr_line}",
                 td_style,
             ),
@@ -476,19 +546,19 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
                 ("BACKGROUND", (0, 0), (-1, 0), c_bg),
                 ("BOX", (0, 0), (-1, -1), 1, c_border),
                 ("INNERGRID", (0, 0), (-1, -1), 0.5, c_border),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
                 ("LEFTPADDING", (0, 0), (-1, -1), 8),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 8),
             ]
         )
     )
     story.append(t_party)
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 10))
 
     # 1. Monthly Recurring Services Table
     story.append(Paragraph("1. Monthly Ongoing Services", sec_head))
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 4))
     mrc_total = num_users * LICENCE_MONTHLY_RATE
     mrc_data = [
         [
@@ -500,7 +570,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
         [
             Paragraph(
                 "<b>Hosted VoIP Cloud User Licence</b><br/>"
-                "<font color='#64748B' size=7.5>Includes PC/Mac softphone, iOS/Android mobile apps, cloud call recording, auto-attendant & inclusive UK landline/mobile calls.</font>",
+                "<font color='#64748B' size=7>Includes PC/Mac softphone, iOS/Android mobile apps, cloud call recording, auto-attendant & inclusive UK landline/mobile calls. <i>(24-month minimum agreement)</i></font>",
                 td_style,
             ),
             Paragraph(str(num_users), td_style),
@@ -522,17 +592,17 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
                 ("BOX", (0, 0), (-1, -1), 1, c_border),
                 ("INNERGRID", (0, 0), (-1, -1), 0.5, c_border),
                 ("BACKGROUND", (0, -1), (-1, -1), c_bg),
-                ("TOPPADDING", (0, 0), (-1, -1), 5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 4.5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
             ]
         )
     )
     story.append(t_mrc)
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 10))
 
     # 2. Hardware Table
     story.append(Paragraph("2. Upfront Hardware & Handsets", sec_head))
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 4))
     capex_total = sum(i["line_total"] for i in hw_items)
     capex_data = [
         [
@@ -548,7 +618,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
             capex_data.append(
                 [
                     Paragraph(
-                        f"<b>{itm['name']}</b><br/><font color='#64748B' size=7.5>{itm['desc']}</font>",
+                        f"<b>{itm['name']}</b><br/><font color='#64748B' size=7>{itm['desc']}</font>",
                         td_style,
                     ),
                     Paragraph(str(itm["qty"]), td_style),
@@ -559,10 +629,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     else:
         capex_data.append(
             [
-                Paragraph(
-                    "App-only deployment selected (No physical desktop hardware)",
-                    td_style,
-                ),
+                Paragraph("App-only deployment selected (No physical desktop hardware)", td_style),
                 "0",
                 "£0.00",
                 "£0.00",
@@ -586,23 +653,25 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
                 ("BOX", (0, 0), (-1, -1), 1, c_border),
                 ("INNERGRID", (0, 0), (-1, -1), 0.5, c_border),
                 ("BACKGROUND", (0, -1), (-1, -1), c_bg),
-                ("TOPPADDING", (0, 0), (-1, -1), 5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 4.5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
             ]
         )
     )
     story.append(t_hw)
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 10))
 
     # Summary Box
     first_month = mrc_total + capex_total
+    contract_total_value = (mrc_total * MIN_CONTRACT_MONTHS) + capex_total
     summary_data = [
         [
-            Paragraph("<b>COMMERCIAL SUMMARY</b>", td_bold),
+            Paragraph("<b>FINANCIAL SUMMARY</b>", td_bold),
             Paragraph(
                 f"<b>Monthly Ongoing Service:</b> £{mrc_total:.2f} + VAT / month<br/>"
                 f"<b>One-Off Upfront Hardware:</b> £{capex_total:.2f} + VAT<br/>"
-                f"<b>Total Month 1 Investment:</b> £{first_month:.2f} + VAT",
+                f"<b>Total Month 1 Investment:</b> £{first_month:.2f} + VAT<br/>"
+                f"<b>24-Month Total Solution Value:</b> £{contract_total_value:.2f} + VAT",
                 td_style,
             ),
         ]
@@ -613,57 +682,115 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
             [
                 ("BACKGROUND", (0, 0), (-1, -1), c_bg),
                 ("BOX", (0, 0), (-1, -1), 1.5, c_primary),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
                 ("LEFTPADDING", (0, 0), (-1, -1), 10),
             ]
         )
     )
     story.append(t_sum)
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 10))
 
-    terms = (
-        "<b>Commercial Notes:</b> Quotation valid for 30 calendar days. Prices exclude VAT. "
-        "User licences operate on standard 30-day rolling terms. Physical hardware carries a standard 12-month "
-        "manufacturer hardware warranty with pre-configuration included."
+    # 🚨 REQUIRED 24-MONTH CONTRACT CLAUSE BOX 🚨
+    clause_text = (
+        "<b>IMPORTANT CONTRACTUAL COMMITMENT &amp; TERMINATION TERMS:</b><br/>"
+        "All hosted user licences quoted herein are strictly subject to a <b>minimum 24-month agreement term</b>. "
+        "In the event of early termination or cancellation of services prior to the expiry of the initial 24-month term, "
+        "<b>early termination charges will be applicable and payable in full</b> for all outstanding monthly licence fees "
+        "remaining across the unexpired portion of the agreement."
     )
-    story.append(Paragraph(terms, meta_style))
+    clause_para = Paragraph(
+        clause_text,
+        ParagraphStyle(
+            "ContractClause",
+            parent=styles["Normal"],
+            fontName="Helvetica",
+            fontSize=7.8,
+            leading=11,
+            textColor=c_warning_text,
+        ),
+    )
+    t_clause = Table([[clause_para]], colWidths=[540])
+    t_clause.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), c_warning_bg),
+                ("BOX", (0, 0), (-1, -1), 1.2, c_warning_border),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ]
+        )
+    )
+    story.append(t_clause)
+    story.append(Spacer(1, 10))
+
+    # Acceptance Sign-Off Box
+    sign_data = [
+        [
+            Paragraph("<b>CUSTOMER ACCEPTANCE &amp; AUTHORISATION:</b>", td_bold),
+            Paragraph("<b>DATE:</b> ___________________________", td_style),
+        ],
+        [
+            Paragraph("Authorised Signature: _________________________________", td_style),
+            Paragraph("Print Name: __________________________", td_style),
+        ],
+    ]
+    t_sign = Table(sign_data, colWidths=[330, 210])
+    t_sign.setStyle(
+        TableStyle(
+            [
+                ("BOX", (0, 0), (-1, -1), 1, c_border),
+                ("BACKGROUND", (0, 0), (-1, -1), c_bg),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ]
+        )
+    )
+    story.append(t_sign)
 
     doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()
 
 
-# 6. Hero Brand Header
-st.markdown('<div class="brand-title">Telephony Quotation</div>', unsafe_allow_html=True)
+# 6. Hero Brand Header Card
 st.markdown(
-    '<div class="brand-subtitle">Interactive white-label quote builder: combine cloud user licences with desktop hardware</div>',
+    """
+    <div class="hero-banner">
+        <span class="brand-tag">Telecoms Reseller Suite</span>
+        <h1 class="brand-title">Telephony Quotation</h1>
+        <p class="brand-subtitle">Interactive white-label quote builder: combine cloud user licences with desktop hardware</p>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
-# 7. Main Tabs
+# 7. Navigation Tabs
 tab_builder, tab_customer_view = st.tabs(["🛠️ Build Quotation", "💼 Customer Presentation View"])
 
 # --- TAB 1: BUILD QUOTATION ---
 with tab_builder:
     # Step 1: Licences
-    st.markdown("### Step 1: Hosted User Licences (Monthly Ongoing)")
+    st.markdown('<div class="section-headline"><span>Step 1:</span> Hosted User Licences (Monthly Ongoing)</div>', unsafe_allow_html=True)
 
     lic_col1, lic_col2 = st.columns([3, 2], gap="large")
     with lic_col1:
         st.markdown(
             f"""
-            <div style="background: linear-gradient(135deg, #0F5A73 0%, #164E63 100%); border-radius: 12px; padding: 1.5rem;">
+            <div style="background: linear-gradient(135deg, #0F5A73 0%, #164E63 100%); border-radius: 14px; padding: 1.6rem; box-shadow: 0 4px 10px rgba(15, 90, 115, 0.15);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 1.3rem; font-weight: 800; color: #FFFFFF !important;">Hosted Cloud User Licence</span>
-                    <span style="background: #38BDF8; color: #0F172A !important; font-weight: 800; font-size: 0.95rem; padding: 4px 10px; border-radius: 6px;">
+                    <span style="font-size: 1.35rem; font-weight: 800; color: #FFFFFF !important;">Hosted Cloud User Licence</span>
+                    <span style="background: #38BDF8; color: #0F172A !important; font-weight: 800; font-size: 0.95rem; padding: 4px 12px; border-radius: 9999px;">
                         £{LICENCE_MONTHLY_RATE:.2f} / user / mo
                     </span>
                 </div>
-                <div style="color: #E2E8F0 !important; font-size: 0.9rem; margin: 0.75rem 0;">
-                    Complete unified communications seat with enterprise features included:
+                <div style="color: #E2E8F0 !important; font-size: 0.88rem; margin: 0.85rem 0 1rem 0;">
+                    Complete unified communications seat with enterprise features included (<strong>24-Month Term</strong>):
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem; color: #F8FAFC !important;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; font-size: 0.85rem; color: #F8FAFC !important;">
                     <div style="color: #FFFFFF !important;">✓ Mobile App (iOS / Android)</div>
                     <div style="color: #FFFFFF !important;">✓ Cloud Call Recording</div>
                     <div style="color: #FFFFFF !important;">✓ Desktop PC Softphone</div>
@@ -689,7 +816,7 @@ with tab_builder:
         )
         st.session_state.num_licences = selected_licences
 
-        # Preset selection buttons wrapped in custom container class
+        # Preset selection buttons
         p1, p2, p3, p4 = st.columns(4)
         with p1:
             st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
@@ -719,22 +846,26 @@ with tab_builder:
         st.metric(
             label="Total Monthly Ongoing Cost",
             value=f"£{total_monthly_licences():.2f}/mo",
-            delta=f"{st.session_state.num_licences} users @ £{LICENCE_MONTHLY_RATE:.2f}",
+            delta=f"{st.session_state.num_licences} users @ £{LICENCE_MONTHLY_RATE:.2f} (24mo)",
         )
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
     # Step 2: Handsets
-    st.markdown("### Step 2: Optional Handsets & Hardware (One-off Upfront)")
+    st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets & Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
     hw_cols = st.columns(4, gap="medium")
     for col, product in zip(hw_cols, PRODUCTS):
         with col:
             st.markdown(
                 f"""
-                <div style="text-align: center; min-height: 65px;">
-                    <div style="font-weight: 800; color: #0F5A73; font-size: 1.05rem;">{product["name"]}</div>
-                    <div style="color: #64748B; font-size: 0.8rem; line-height: 1.25; margin-top: 2px;">{product["desc"]}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span class="card-badge">{product.get('tag', 'Handset')}</span>
+                    <span style="font-weight: 800; color: #0F5A73; font-size: 1.15rem;">£{product['price']:.2f}</span>
+                </div>
+                <div style="min-height: 55px;">
+                    <div style="font-weight: 800; color: #0F172A; font-size: 1rem;">{product["name"]}</div>
+                    <div style="color: #64748B; font-size: 0.78rem; line-height: 1.25; margin-top: 2px;">{product["desc"]}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -744,15 +875,6 @@ with tab_builder:
                 st.image(product["image"])
             else:
                 st.caption("Image unavailable")
-
-            st.markdown(
-                f"""
-                <div style="text-align: center; font-size: 1.2rem; font-weight: 800; color: #0F172A; margin: 0.2rem 0 0.5rem 0;">
-                    £{product["price"]:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">each</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
 
             qty = st.number_input(
                 "Qty",
@@ -788,7 +910,7 @@ with tab_builder:
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
     # Step 3: Reseller & Customer Quote Form
-    st.markdown("### Step 3: Quotation Details & PDF Generation")
+    st.markdown('<div class="section-headline"><span>Step 3:</span> Quotation Details & PDF Generation</div>', unsafe_allow_html=True)
 
     with st.form(key="telephony_quote_form"):
         col_reseller, col_customer = st.columns(2, gap="large")
@@ -808,7 +930,7 @@ with tab_builder:
             c_phone = st.text_input("Customer Phone Number", placeholder="0161 123 4567")
 
         st.markdown("<hr style='margin: 1.25rem 0;'>", unsafe_allow_html=True)
-        st.markdown("#### 📦 Delivery / Site Address *(Optional - can be left blank for early quotes)*")
+        st.markdown("#### 📦 Delivery / Site Address *(Optional - can be left blank for initial quotes)*")
         d1, d2, d3 = st.columns([2, 1, 1])
         with d1:
             del_addr1 = st.text_input("Address Line 1")
@@ -817,8 +939,19 @@ with tab_builder:
         with d3:
             del_postcode = st.text_input("Postcode")
 
+        # Visual note on the form regarding 24-month contract
+        st.markdown(
+            """
+            <div class="contract-warning-box">
+                <div class="contract-warning-title">⚠️ Mandatory 24-Month Agreement Term</div>
+                <div>User licences are subject to a minimum 24-month contract. Early termination fees will apply in full for the unexpired term upon cancellation. This clause is codified automatically on the produced PDF quotation.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
         generate_submitted = st.form_submit_button(
-            "💾 Save Quotation & Generate PDF", use_container_width=True
+            "💾 Save Quotation & Generate Official PDF", use_container_width=True
         )
 
     if generate_submitted:
@@ -876,6 +1009,7 @@ with tab_builder:
                 "Hardware Summary": [hw_summary],
                 "Hardware Total (£)": [f"{total_hardware_capex():.2f}"],
                 "Delivery Address": [full_delivery],
+                "Contract Term": ["24 Months Minimum"],
             }
             df = pd.DataFrame(record)
             if not os.path.isfile("quotes.csv"):
@@ -883,9 +1017,9 @@ with tab_builder:
             else:
                 df.to_csv("quotes.csv", mode="a", header=False, index=False)
 
-            st.success(f"Quotation #{quote_ref} generated successfully with all items included!")
+            st.success(f"Quotation #{quote_ref} generated successfully with 24-month contract terms and hardware included!")
 
-    # Visible, high-contrast download button
+    # Download action button
     if "active_quote_pdf" in st.session_state:
         st.markdown("<br>", unsafe_allow_html=True)
         st.download_button(
@@ -911,14 +1045,17 @@ with tab_customer_view:
         # Proposal Header Card
         st.markdown(
             f"""
-            <div style="background-color: #FFFFFF; border-radius: 14px; border: 2px solid #0F5A73; padding: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.04);">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #E2E8F0; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+            <div style="background-color: #FFFFFF; border-radius: 14px; border: 2px solid #0F5A73; padding: 2rem; box-shadow: 0 4px 12px rgba(15, 90, 115, 0.08);">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #E2E8F0; padding-bottom: 1.25rem; margin-bottom: 1.5rem;">
                     <div>
-                        <div style="color: #0F5A73; font-size: 1.6rem; font-weight: 800;">Telephony Quotation</div>
-                        <div style="color: #64748B; font-size: 0.95rem;">Cloud VoIP &amp; Unified Communications Proposal</div>
+                        <div style="color: #0F5A73; font-size: 1.7rem; font-weight: 800;">Telephony Quotation</div>
+                        <div style="color: #64748B; font-size: 0.95rem; margin-top: 3px;">Unified Communications &amp; Cloud Telephony Solution</div>
                     </div>
-                    <div style="background: #E0F2FE; color: #0369A1; font-weight: 700; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem;">
-                        {datetime.now().strftime('%d %B %Y')}
+                    <div style="text-align: right;">
+                        <span style="background: #E0F2FE; color: #0369A1; font-weight: 700; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; display: inline-block; margin-bottom: 4px;">
+                            {datetime.now().strftime('%d %B %Y')}
+                        </span>
+                        <div style="font-size: 0.78rem; font-weight: 700; color: #B45309;">24-Month Term</div>
                     </div>
                 </div>
             </div>
@@ -951,9 +1088,9 @@ with tab_customer_view:
         if st.session_state.num_licences > 0:
             st.markdown(
                 f"""
-| Service Description | Quantity | Unit Price | Monthly Total |
-| :--- | :---: | :---: | :---: |
-| **Hosted VoIP User Licence** (Apps, Call Recording, Inclusive UK Mins) | {st.session_state.num_licences} Users | £{LICENCE_MONTHLY_RATE:.2f} / mo | **£{mrc:.2f} / mo** |
+| Service Description | Quantity | Agreement Term | Unit Price | Monthly Total |
+| :--- | :---: | :---: | :---: | :---: |
+| **Hosted VoIP Cloud User Licence** (Apps, Call Recording, Inclusive UK Mins) | {st.session_state.num_licences} Users | **24 Months** | £{LICENCE_MONTHLY_RATE:.2f} / mo | **£{mrc:.2f} / mo** |
 """
             )
         else:
@@ -967,7 +1104,7 @@ with tab_customer_view:
                 "| :--- | :---: | :---: | :---: |"
             ]
             for item in h_items:
-                table_lines.append(f"| **{item['name']}** - {item['desc']} | {item['qty']} | £{item['price']:.2f} | £{item['line_total']:.2f} |")
+                table_lines.append(f"| **{item['name']}** ({item.get('tag', 'Handset')}) - {item['desc']} | {item['qty']} | £{item['price']:.2f} | £{item['line_total']:.2f} |")
             table_lines.append(f"| **Hardware Subtotal** | | | **£{capex:.2f}** |")
             
             st.markdown("\n".join(table_lines))
@@ -976,11 +1113,12 @@ with tab_customer_view:
                 "App-only deployment selected (No physical desktop hardware). Users will utilise PC/Mac and mobile smartphone apps."
             )
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        # Presentation View 24-Month Notice
         st.markdown(
             """
-            <div style="background-color: #F8FAFC; border: 1px dashed #CBD5E1; padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: #64748B;">
-                <strong>Commercial Terms:</strong> Quotation valid for 30 days. All prices exclude VAT. Pre-configured handsets include power adapters, desk stands, and lifetime manufacturer hardware warranties.
+            <div class="contract-warning-box">
+                <div class="contract-warning-title">📜 Commercial Contract Term &amp; Conditions</div>
+                <div>All hosted licences quoted are subject to a minimum <strong>24-month contract agreement</strong>. Early termination charges will apply in full for the unexpired balance of the contract term if services are cancelled prior to the 24-month period. Quotation valid for 30 days. Prices exclude VAT.</div>
             </div>
             """,
             unsafe_allow_html=True,
