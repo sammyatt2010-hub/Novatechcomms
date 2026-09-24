@@ -186,6 +186,10 @@ st.markdown(
         background-color: #FFFFFF !important;
         font-weight: 500 !important;
     }
+    div[data-testid="stTextInput"] input::placeholder {
+        color: #94A3B8 !important;
+        -webkit-text-fill-color: #94A3B8 !important;
+    }
 
     /* Expander / Basket */
     div[data-testid="stExpander"] {
@@ -888,7 +892,7 @@ with tab_builder:
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 3: Reseller & Customer Quote Form
+    # Step 3: Reseller & Customer Quote Form (All Blank Inputs)
     st.markdown('<div class="section-headline"><span>Step 3:</span> Quotation Details & PDF Generation</div>', unsafe_allow_html=True)
 
     with st.form(key="telephony_quote_form"):
@@ -896,27 +900,27 @@ with tab_builder:
 
         with col_reseller:
             st.markdown("#### 🏢 Your Company Details (Service Provider)")
-            r_company = st.text_input("Your Company / Reseller Name*", value="Telecoms Partner Ltd")
-            r_contact = st.text_input("Your Name / Account Manager*", value="Sam Myatt")
-            r_email = st.text_input("Your Email Address*", value="sales@telecomspartner.co.uk")
-            r_phone = st.text_input("Your Phone Number", value="0330 123 4567")
+            r_company = st.text_input("Your Company / Reseller Name*", placeholder="e.g. Telecoms Partner Ltd")
+            r_contact = st.text_input("Your Name / Account Manager*", placeholder="e.g. Sam Myatt")
+            r_email = st.text_input("Your Email Address*", placeholder="e.g. sales@yourtelecoms.co.uk")
+            r_phone = st.text_input("Your Phone Number", placeholder="e.g. 0330 123 4567")
 
         with col_customer:
             st.markdown("#### 👤 Proposed Customer Details")
             c_company = st.text_input("Customer Company Name*", placeholder="e.g. Apex Logistics Ltd")
             c_contact = st.text_input("Customer Contact Name*", placeholder="e.g. Sarah Jenkins")
-            c_email = st.text_input("Customer Email Address*", placeholder="sarah@apexlogistics.co.uk")
-            c_phone = st.text_input("Customer Phone Number", placeholder="0161 123 4567")
+            c_email = st.text_input("Customer Email Address*", placeholder="e.g. sarah@apexlogistics.co.uk")
+            c_phone = st.text_input("Customer Phone Number", placeholder="e.g. 0161 123 4567")
 
         st.markdown("<hr style='margin: 1.25rem 0;'>", unsafe_allow_html=True)
         st.markdown("#### 📦 Delivery / Site Address *(Optional - can be left blank for initial quotes)*")
         d1, d2, d3 = st.columns([2, 1, 1])
         with d1:
-            del_addr1 = st.text_input("Address Line 1")
+            del_addr1 = st.text_input("Address Line 1", placeholder="Building name or street")
         with d2:
-            del_city = st.text_input("Town / City")
+            del_city = st.text_input("Town / City", placeholder="Town / City")
         with d3:
-            del_postcode = st.text_input("Postcode")
+            del_postcode = st.text_input("Postcode", placeholder="Postcode")
 
         generate_submitted = st.form_submit_button(
             "💾 Save Quotation & Generate Official PDF", use_container_width=True
