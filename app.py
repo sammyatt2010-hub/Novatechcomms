@@ -57,7 +57,7 @@ if not check_password():
     st.stop()
 
 
-# 3. High-Contrast Styles
+# 3. High-Contrast Styles & Normalized Image Containers
 st.markdown(
     """
     <style>
@@ -149,30 +149,54 @@ st.markdown(
         gap: 8px;
     }
 
-    /* Hardware Cards */
+    /* Hardware Cards: Uniform Flex Grid */
     div[data-testid="column"] {
         background-color: #FFFFFF !important;
         border-radius: 14px;
         padding: 1.25rem !important;
         border: 1px solid #E2E8F0;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     div[data-testid="column"]:hover {
         border-color: #CBD5E1;
         box-shadow: 0 10px 15px -3px rgba(15, 90, 115, 0.08);
     }
-    div[data-testid="column"] img {
-        height: 145px !important;
-        max-height: 145px !important;
+
+    /* 🚨 CRITICAL FIX: Uniform Image Stage Box for All Phone Handsets 🚨 */
+    .phone-image-stage {
+        height: 175px !important;
         width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #FAFAFA !important;
+        border-radius: 10px !important;
+        margin: 0.75rem 0 !important;
+        padding: 8px !important;
+        overflow: hidden !important;
+    }
+    .phone-image-stage img {
+        max-height: 160px !important;
+        max-width: 95% !important;
+        width: auto !important;
+        height: auto !important;
         object-fit: contain !important;
-        margin: 0.6rem auto !important;
         display: block !important;
-        background: #FFFFFF !important;
+        margin: 0 auto !important;
     }
 
-    /* Card Badge */
+    /* Standardized Card Headers */
+    .card-top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
     .card-badge {
         font-size: 0.72rem;
         font-weight: 700;
@@ -184,6 +208,9 @@ st.markdown(
         display: inline-block;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+    }
+    .card-header-block {
+        min-height: 80px;
     }
 
     /* Number Steppers & Inputs */
@@ -231,7 +258,7 @@ st.markdown(
         -webkit-text-fill-color: #94A3B8 !important;
     }
 
-    /* Expander / Basket */
+    /* Expander Container */
     div[data-testid="stExpander"] {
         background-color: #FFFFFF !important;
         border: 1.5px solid #0F5A73 !important;
@@ -307,7 +334,7 @@ st.markdown(
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04) !important;
     }
 
-    /* Native Clean Markdown Tables */
+    /* Native Markdown Tables */
     table {
         width: 100% !important;
         border-collapse: collapse !important;
@@ -397,18 +424,19 @@ def load_products():
 
 PRODUCTS = load_products()
 
-# 5. Session State Setup
+# 5. Session State Setup (Defaults all quantities to 0)
 if "basket" not in st.session_state:
     st.session_state.basket = {}
 
 if "num_licences" not in st.session_state:
-    st.session_state.num_licences = 5
+    st.session_state.num_licences = 0  # Defaulted to 0 on reload
 
 
-def add_to_basket(product_id, qty):
-    st.session_state.basket[product_id] = (
-        st.session_state.basket.get(product_id, 0) + qty
-    )
+def set_hardware_qty(product_id, qty):
+    if qty > 0:
+        st.session_state.basket[product_id] = qty
+    else:
+        st.session_state.basket.pop(product_id, None)
 
 
 def remove_from_basket(product_id):
@@ -627,7 +655,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(t_mrc)
     story.append(Spacer(1, 10))
 
-    # 2. One-Off Upfront Costs Table (User Activation + Hardware)
+    # 2. One-Off Upfront Costs Table
     story.append(Paragraph("2. One-Off Upfront Costs", sec_head))
     story.append(Spacer(1, 4))
 
@@ -693,7 +721,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(t_upfront)
     story.append(Spacer(1, 10))
 
-    # Summary Box (Clean: Monthly Ongoing + One-Off Upfront + Month 1 Total)
+    # Summary Box
     first_month = mrc_total + one_off_grand_total
     summary_data = [
         [
@@ -886,7 +914,7 @@ with tab_builder:
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 2: Handsets
+    # Step 2: Handsets with Normalized Image Viewport
     st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
     hw_cols = st.columns(4, gap="medium")
@@ -894,11 +922,11 @@ with tab_builder:
         with col:
             st.markdown(
                 f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <div class="card-top-row">
                     <span class="card-badge">{product.get('tag', 'Handset')}</span>
                     <span style="font-weight: 800; color: #0F5A73; font-size: 1.15rem;">£{product['price']:.2f}</span>
                 </div>
-                <div style="min-height: 55px;">
+                <div class="card-header-block">
                     <div style="font-weight: 800; color: #0F172A; font-size: 1rem;">{product["name"]}</div>
                     <div style="color: #64748B; font-size: 0.78rem; line-height: 1.25; margin-top: 2px;">{product["desc"]}</div>
                 </div>
@@ -906,31 +934,54 @@ with tab_builder:
                 unsafe_allow_html=True,
             )
 
-            if os.path.exists(product["image"]):
-                st.image(product["image"])
+            # 🚨 Rigid Image Stage with uniform baseline across models 🚨
+            img_path = product["image"]
+            if os.path.exists(img_path):
+                st.markdown(
+                    f"""
+                    <div class="phone-image-stage">
+                        <img src="app/static/{img_path}" onerror="this.onerror=null; this.src='{img_path}';" alt="{product['name']}">
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
             else:
-                st.caption("Image unavailable")
+                st.markdown(
+                    """
+                    <div class="phone-image-stage" style="color: #94A3B8; font-size: 0.85rem;">
+                        Image unavailable
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
+            # Counter defaults to 0 on reload or displays session value
+            current_qty = st.session_state.basket.get(product["id"], 0)
             qty = st.number_input(
                 "Qty",
-                min_value=1,
+                min_value=0,
                 max_value=100,
-                value=1,
+                value=current_qty,
                 step=1,
                 key=f"qty_{product['id']}",
                 label_visibility="collapsed",
             )
-            if st.button(f"Add to Basket", key=f"btn_{product['id']}", use_container_width=True):
-                add_to_basket(product["id"], qty)
-                st.toast(f"Added {qty}x {product['name']}", icon="✅")
+
+            # Button renamed to "Add to Quotation"
+            if st.button(f"Add to Quotation", key=f"btn_{product['id']}", use_container_width=True):
+                set_hardware_qty(product["id"], qty)
+                if qty > 0:
+                    st.toast(f"Updated {qty}x {product['name']} in quotation!", icon="✅")
+                else:
+                    st.toast(f"Removed {product['name']} from quotation.", icon="ℹ️")
                 st.rerun()
 
-    # Hardware Basket Expander
+    # Hardware List Expander
     hw_list = basket_items()
     if hw_list:
         st.markdown("<br>", unsafe_allow_html=True)
         with st.expander(
-            f"🛒 Hardware Basket ({sum(i['qty'] for i in hw_list)} items) — Hardware Subtotal: £{total_hardware_capex():.2f}",
+            f"📋 Selected Hardware in Quotation ({sum(i['qty'] for i in hw_list)} items) — Hardware Subtotal: £{total_hardware_capex():.2f}",
             expanded=True,
         ):
             for item in hw_list:
