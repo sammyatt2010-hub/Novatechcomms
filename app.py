@@ -23,7 +23,6 @@ def check_password():
     if st.session_state.get("authenticated", False):
         return True
 
-    # Pull password from Streamlit secrets, or use fallback
     configured_password = st.secrets.get("APP_PASSWORD", "araconnect")
 
     _, col_login, _ = st.columns([1, 1.2, 1])
@@ -58,7 +57,7 @@ if not check_password():
     st.stop()
 
 
-# 3. Polished High-Contrast Design
+# 3. High-Contrast Styles
 st.markdown(
     """
     <style>
@@ -337,9 +336,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 4. Product Catalogue & Defaults
+# 4. Rates & Defaults
 LICENCE_MONTHLY_RATE = 7.00
-MIN_CONTRACT_MONTHS = 24
+ACTIVATION_FEE_PER_USER = 25.00
 CATALOGUE_FILE = "catalogue.json"
 
 _FALLBACK_PRODUCTS = [
@@ -431,6 +430,10 @@ def total_hardware_capex():
 
 def total_monthly_licences():
     return st.session_state.num_licences * LICENCE_MONTHLY_RATE
+
+
+def total_activation_fee():
+    return st.session_state.num_licences * ACTIVATION_FEE_PER_USER
 
 
 # 6. ReportLab PDF Generation Routine
@@ -580,8 +583,8 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(t_party)
     story.append(Spacer(1, 10))
 
-    # 1. Monthly Recurring Services Table
-    story.append(Paragraph("1. Monthly Ongoing Services", sec_head))
+    # 1. Ongoing Monthly Costs Table
+    story.append(Paragraph("1. Ongoing Monthly Costs", sec_head))
     story.append(Spacer(1, 4))
     mrc_total = num_users * LICENCE_MONTHLY_RATE
     mrc_data = [
@@ -594,7 +597,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
         [
             Paragraph(
                 "<b>Hosted VoIP Cloud User Licence</b><br/>"
-                "<font color='#64748B' size=7>Includes PC/Mac softphone, iOS/Android mobile apps, cloud call recording, auto-attendant & inclusive UK landline/mobile calls. <i>(24-month minimum agreement)</i></font>",
+                "<font color='#64748B' size=7>Includes PC/Mac softphone, iOS/Android mobile apps, cloud call recording, auto-attendant & inclusive UK landline/mobile calls.</font>",
                 td_style,
             ),
             Paragraph(str(num_users), td_style),
@@ -602,7 +605,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
             Paragraph(f"£{mrc_total:.2f} / mo", td_bold),
         ],
         [
-            Paragraph("<b>Total Monthly Recurring (Ex VAT)</b>", td_bold),
+            Paragraph("<b>Total Ongoing Monthly Costs (Ex VAT)</b>", td_bold),
             "",
             "",
             Paragraph(f"<b>£{mrc_total:.2f} / mo</b>", td_bold),
@@ -624,22 +627,36 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(t_mrc)
     story.append(Spacer(1, 10))
 
-    # 2. Hardware Table
-    story.append(Paragraph("2. Upfront Hardware & Handsets", sec_head))
+    # 2. One-Off Upfront Costs Table (User Activation + Hardware)
+    story.append(Paragraph("2. One-Off Upfront Costs", sec_head))
     story.append(Spacer(1, 4))
-    capex_total = sum(i["line_total"] for i in hw_items)
-    capex_data = [
+
+    activation_total = num_users * ACTIVATION_FEE_PER_USER
+    hw_total = sum(i["line_total"] for i in hw_items)
+    one_off_grand_total = activation_total + hw_total
+
+    upfront_data = [
         [
-            Paragraph("Handset Model / Description", th_style),
+            Paragraph("Item / Description", th_style),
             Paragraph("Qty", th_style),
             Paragraph("Unit Price", th_style),
             Paragraph("Line Total", th_style),
+        ],
+        [
+            Paragraph(
+                "<b>Initial User Setup &amp; Activation</b><br/>"
+                "<font color='#64748B' size=7>System configuration, extension setup, user provisioning &amp; portal deployment.</font>",
+                td_style,
+            ),
+            Paragraph(str(num_users), td_style),
+            Paragraph(f"£{ACTIVATION_FEE_PER_USER:.2f}", td_style),
+            Paragraph(f"£{activation_total:.2f}", td_bold),
         ]
     ]
 
     if hw_items:
         for itm in hw_items:
-            capex_data.append(
+            upfront_data.append(
                 [
                     Paragraph(
                         f"<b>{itm['name']}</b><br/><font color='#64748B' size=7>{itm['desc']}</font>",
@@ -650,27 +667,18 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
                     Paragraph(f"£{itm['line_total']:.2f}", td_bold),
                 ]
             )
-    else:
-        capex_data.append(
-            [
-                Paragraph("App-only deployment selected (No physical desktop hardware)", td_style),
-                "0",
-                "£0.00",
-                "£0.00",
-            ]
-        )
 
-    capex_data.append(
+    upfront_data.append(
         [
-            Paragraph("<b>Total One-off Hardware (Ex VAT)</b>", td_bold),
+            Paragraph("<b>Total One-Off Upfront Costs (Ex VAT)</b>", td_bold),
             "",
             "",
-            Paragraph(f"<b>£{capex_total:.2f}</b>", td_bold),
+            Paragraph(f"<b>£{one_off_grand_total:.2f}</b>", td_bold),
         ]
     )
 
-    t_hw = Table(capex_data, colWidths=[290, 50, 100, 100])
-    t_hw.setStyle(
+    t_upfront = Table(upfront_data, colWidths=[290, 50, 100, 100])
+    t_upfront.setStyle(
         TableStyle(
             [
                 ("BACKGROUND", (0, 0), (-1, 0), c_primary),
@@ -682,20 +690,19 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
             ]
         )
     )
-    story.append(t_hw)
+    story.append(t_upfront)
     story.append(Spacer(1, 10))
 
-    # Summary Box
-    first_month = mrc_total + capex_total
-    contract_total_value = (mrc_total * MIN_CONTRACT_MONTHS) + capex_total
+    # Summary Box (Clean: Monthly Ongoing + One-Off Upfront + Month 1 Total)
+    first_month = mrc_total + one_off_grand_total
     summary_data = [
         [
             Paragraph("<b>FINANCIAL SUMMARY</b>", td_bold),
             Paragraph(
-                f"<b>Monthly Ongoing Service:</b> £{mrc_total:.2f} + VAT / month<br/>"
-                f"<b>One-Off Upfront Hardware:</b> £{capex_total:.2f} + VAT<br/>"
-                f"<b>Total Month 1 Investment:</b> £{first_month:.2f} + VAT<br/>"
-                f"<b>24-Month Total Solution Value:</b> £{contract_total_value:.2f} + VAT",
+                f"<b>Ongoing Monthly Costs:</b> £{mrc_total:.2f} + VAT / month<br/>"
+                f"<b>Total One-Off Upfront Costs:</b> £{one_off_grand_total:.2f} + VAT "
+                f"<font color='#64748B' size=7.5>(Includes £{activation_total:.2f} Activation + £{hw_total:.2f} Hardware)</font><br/>"
+                f"<b>Total Month 1 Investment:</b> £{first_month:.2f} + VAT",
                 td_style,
             ),
         ]
@@ -798,7 +805,7 @@ tab_builder, tab_customer_view = st.tabs(["🛠️ Build Quotation", "💼 Custo
 # --- TAB 1: BUILD QUOTATION ---
 with tab_builder:
     # Step 1: Licences
-    st.markdown('<div class="section-headline"><span>Step 1:</span> Hosted User Licences (Monthly Ongoing)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-headline"><span>Step 1:</span> Hosted User Licences (Ongoing Monthly)</div>', unsafe_allow_html=True)
 
     lic_col1, lic_col2 = st.columns([3, 2], gap="large")
     with lic_col1:
@@ -821,6 +828,9 @@ with tab_builder:
                     <div style="color: #FFFFFF !important;">✓ Auto-Attendant & IVR</div>
                     <div style="color: #FFFFFF !important;">✓ Voicemail-to-Email</div>
                     <div style="color: #FFFFFF !important;">✓ Inclusive UK Landline/Mobile Calls</div>
+                </div>
+                <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.82rem; color: #BAE6FD;">
+                    ⚡ One-off user activation &amp; provisioning: <strong>£{ACTIVATION_FEE_PER_USER:.2f} per user</strong> (billed upfront in Month 1)
                 </div>
             </div>
             """,
@@ -867,15 +877,17 @@ with tab_builder:
             st.markdown('</div>', unsafe_allow_html=True)
 
         st.metric(
-            label="Total Monthly Ongoing Cost",
+            label="Ongoing Monthly Costs",
             value=f"£{total_monthly_licences():.2f}/mo",
             delta=f"{st.session_state.num_licences} users @ £{LICENCE_MONTHLY_RATE:.2f}",
         )
 
+        st.caption(f"Initial One-Off Activation ({st.session_state.num_licences} users @ £{ACTIVATION_FEE_PER_USER:.2f}): **£{total_activation_fee():.2f}**")
+
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
     # Step 2: Handsets
-    st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets & Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
     hw_cols = st.columns(4, gap="medium")
     for col, product in zip(hw_cols, PRODUCTS):
@@ -918,7 +930,7 @@ with tab_builder:
     if hw_list:
         st.markdown("<br>", unsafe_allow_html=True)
         with st.expander(
-            f"🛒 Hardware Basket ({sum(i['qty'] for i in hw_list)} items) — Total: £{total_hardware_capex():.2f}",
+            f"🛒 Hardware Basket ({sum(i['qty'] for i in hw_list)} items) — Hardware Subtotal: £{total_hardware_capex():.2f}",
             expanded=True,
         ):
             for item in hw_list:
@@ -1009,6 +1021,7 @@ with tab_builder:
                 if hw_list
                 else "No Hardware (App/Licences Only)"
             )
+            one_off_combined = total_activation_fee() + total_hardware_capex()
             record = {
                 "Quote Ref": [quote_ref],
                 "Date": [quote_date],
@@ -1018,9 +1031,11 @@ with tab_builder:
                 "Customer Contact": [c_contact],
                 "Customer Email": [c_email],
                 "Licences": [st.session_state.num_licences],
-                "Monthly Total (£)": [f"{total_monthly_licences():.2f}"],
+                "Ongoing Monthly Costs (£)": [f"{total_monthly_licences():.2f}"],
+                "Activation Fee (£)": [f"{total_activation_fee():.2f}"],
                 "Hardware Summary": [hw_summary],
                 "Hardware Total (£)": [f"{total_hardware_capex():.2f}"],
+                "Total One-Off Costs (£)": [f"{one_off_combined:.2f}"],
                 "Delivery Address": [full_delivery],
             }
             df = pd.DataFrame(record)
@@ -1050,8 +1065,10 @@ with tab_customer_view:
 
     with c2:
         mrc = total_monthly_licences()
-        capex = total_hardware_capex()
-        month_1 = mrc + capex
+        activation = total_activation_fee()
+        hw_total = total_hardware_capex()
+        one_off_total = activation + hw_total
+        month_1 = mrc + one_off_total
         h_items = basket_items()
 
         # Proposal Header Card
@@ -1076,17 +1093,19 @@ with tab_customer_view:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # 3 Pillar Summary
+        # 3 Pillar Summary: Ongoing Monthly vs One-Off Upfront vs Month 1 Total
         kpi1, kpi2, kpi3 = st.columns(3)
         with kpi1:
             st.metric(
-                label="Monthly Ongoing (Ex VAT)",
+                label="Ongoing Monthly Costs",
                 value=f"£{mrc:.2f}/mo",
             )
         with kpi2:
             st.metric(
-                label="One-Off Hardware (Ex VAT)",
-                value=f"£{capex:.2f}",
+                label="Total One-Off Costs",
+                value=f"£{one_off_total:.2f}",
+                delta=f"Activation: £{activation:.2f} | Handsets: £{hw_total:.2f}",
+                delta_color="off",
             )
         with kpi3:
             st.metric(
@@ -1095,7 +1114,7 @@ with tab_customer_view:
             )
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 1. Monthly Ongoing Services")
+        st.markdown("#### 1. Ongoing Monthly Costs")
         if st.session_state.num_licences > 0:
             st.markdown(
                 f"""
@@ -1108,21 +1127,19 @@ with tab_customer_view:
             st.caption("No user licences currently selected.")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 2. Physical Handsets & Hardware")
+        st.markdown("#### 2. One-Off Upfront Costs")
+        table_lines = [
+            "| Item Description | Qty | Unit Price | Total |",
+            "| :--- | :---: | :---: | :---: |",
+            f"| **Initial User Setup & Activation** - Provisioning, portal setup, and licence deployment | {st.session_state.num_licences} | £{ACTIVATION_FEE_PER_USER:.2f} | £{activation:.2f} |"
+        ]
+
         if h_items:
-            table_lines = [
-                "| Hardware Description | Qty | Unit Price | Total |",
-                "| :--- | :---: | :---: | :---: |"
-            ]
             for item in h_items:
                 table_lines.append(f"| **{item['name']}** ({item.get('tag', 'Handset')}) - {item['desc']} | {item['qty']} | £{item['price']:.2f} | £{item['line_total']:.2f} |")
-            table_lines.append(f"| **Hardware Subtotal** | | | **£{capex:.2f}** |")
-            
-            st.markdown("\n".join(table_lines))
-        else:
-            st.info(
-                "App-only deployment selected (No physical desktop hardware). Users will utilise PC/Mac and mobile smartphone apps."
-            )
+
+        table_lines.append(f"| **Total One-Off Upfront Costs** | | | **£{one_off_total:.2f}** |")
+        st.markdown("\n".join(table_lines))
 
         st.markdown(
             """
