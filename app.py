@@ -327,7 +327,7 @@ st.markdown(
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04) !important;
     }
 
-    /* KPI Summary Cards (Used consistently across both tabs) */
+    /* KPI Summary Cards */
     .vat-kpi-card {
         background: #FFFFFF;
         border: 1px solid #E2E8F0;
@@ -356,7 +356,7 @@ st.markdown(
         margin-top: 0.35rem;
     }
 
-    /* Clean Content Framing Box */
+    /* Content Box */
     .section-box {
         background: #FFFFFF;
         border-radius: 14px;
@@ -557,7 +557,7 @@ def load_products():
 
 PRODUCTS = load_products()
 
-# 6. Session State Setup
+# 6. Session State Setup (Defaults cleanly to 0)
 if "basket" not in st.session_state:
     st.session_state.basket = {}
 
@@ -594,11 +594,13 @@ def total_hardware_capex():
 
 
 def total_monthly_licences():
-    return st.session_state.num_licences * LICENCE_MONTHLY_RATE
+    users = st.session_state.get("num_licences", 0)
+    return float(users) * LICENCE_MONTHLY_RATE if users > 0 else 0.0
 
 
 def total_activation_fee():
-    return st.session_state.num_licences * ACTIVATION_FEE_PER_USER
+    users = st.session_state.get("num_licences", 0)
+    return float(users) * ACTIVATION_FEE_PER_USER if users > 0 else 0.0
 
 
 # 7. ReportLab PDF Generation Routine
@@ -751,7 +753,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     # 1. Ongoing Monthly Costs Table
     story.append(Paragraph("1. Ongoing Monthly Costs", sec_head))
     story.append(Spacer(1, 4))
-    mrc_total = num_users * LICENCE_MONTHLY_RATE
+    mrc_total = num_users * LICENCE_MONTHLY_RATE if num_users > 0 else 0.0
     mrc_vat = mrc_total * VAT_RATE
     mrc_inc_vat = mrc_total + mrc_vat
 
@@ -812,7 +814,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(Paragraph("2. One-Off Upfront Costs", sec_head))
     story.append(Spacer(1, 4))
 
-    activation_total = num_users * ACTIVATION_FEE_PER_USER
+    activation_total = num_users * ACTIVATION_FEE_PER_USER if num_users > 0 else 0.0
     hw_total = sum(i["line_total"] for i in hw_items)
     one_off_grand_total = activation_total + hw_total
     one_off_vat = one_off_grand_total * VAT_RATE
@@ -912,7 +914,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     t_sum.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), c_bg),
+                ("BACKGROUND", (0, 0), (-1, 0), c_bg),
                 ("BOX", (0, 0), (-1, -1), 1.5, c_primary),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
@@ -992,25 +994,8 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
 # 8. Navigation Tabs
 tab_builder, tab_customer_view = st.tabs(["🛠️ Build Quotation", "💼 Customer Presentation View"])
 
-# Calculate Live Totals (Used across both tabs)
-mrc_ex = total_monthly_licences()
-mrc_vat = mrc_ex * VAT_RATE
-mrc_inc = mrc_ex + mrc_vat
 
-activation_ex = total_activation_fee()
-hw_total_ex = total_hardware_capex()
-one_off_ex = activation_ex + hw_total_ex
-one_off_vat = one_off_ex * VAT_RATE
-one_off_inc = one_off_ex + one_off_vat
-
-month_1_ex = mrc_ex + one_off_ex
-month_1_vat = mrc_vat + one_off_vat
-month_1_inc = month_1_ex + month_1_vat
-
-h_items = basket_items()
-
-
-# --- TAB 1: BUILD QUOTATION (Centered & Framed matching Customer View) ---
+# --- TAB 1: BUILD QUOTATION (Proportional, centered & live-calculated) ---
 with tab_builder:
     st.markdown("<br>", unsafe_allow_html=True)
     b_col1, b_main, b_col3 = st.columns([1, 4, 1])
@@ -1036,15 +1021,27 @@ with tab_builder:
             unsafe_allow_html=True,
         )
 
-        # 3 Pillar Summary Cards: Matches Customer Presentation View
+        # Reactive live calculation container
+        live_mrc_ex = total_monthly_licences()
+        live_mrc_inc = live_mrc_ex * (1 + VAT_RATE)
+
+        live_activation_ex = total_activation_fee()
+        live_hw_ex = total_hardware_capex()
+        live_one_off_ex = live_activation_ex + live_hw_ex
+        live_one_off_inc = live_one_off_ex * (1 + VAT_RATE)
+
+        live_month_1_ex = live_mrc_ex + live_one_off_ex
+        live_month_1_inc = live_month_1_ex * (1 + VAT_RATE)
+
+        # 3 Pillar Summary Cards: Always strictly mirrors current selection
         kpi1, kpi2, kpi3 = st.columns(3)
         with kpi1:
             st.markdown(
                 f"""
                 <div class="vat-kpi-card" style="border-left: 4px solid #0F5A73;">
                     <div class="vat-kpi-title">Ongoing Monthly Costs</div>
-                    <div class="vat-kpi-ex">£{mrc_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
-                    <div class="vat-kpi-inc">£{mrc_inc:.2f} / mo <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                    <div class="vat-kpi-ex">£{live_mrc_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{live_mrc_inc:.2f} / mo <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -1054,8 +1051,8 @@ with tab_builder:
                 f"""
                 <div class="vat-kpi-card" style="border-left: 4px solid #38BDF8;">
                     <div class="vat-kpi-title">Total One-Off Costs</div>
-                    <div class="vat-kpi-ex">£{one_off_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
-                    <div class="vat-kpi-inc">£{one_off_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                    <div class="vat-kpi-ex">£{live_one_off_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{live_one_off_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -1065,8 +1062,8 @@ with tab_builder:
                 f"""
                 <div class="vat-kpi-card" style="border-left: 4px solid #10B981;">
                     <div class="vat-kpi-title">Total Month 1 Investment</div>
-                    <div class="vat-kpi-ex">£{month_1_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
-                    <div class="vat-kpi-inc">£{month_1_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                    <div class="vat-kpi-ex">£{live_month_1_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{live_month_1_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -1115,16 +1112,20 @@ with tab_builder:
 
         with lic_col2:
             st.markdown("**Number of Hosted Users**")
-            selected_licences = st.number_input(
+            
+            # Direct two-way binding using key="num_licences"
+            def on_user_change():
+                pass  # Streamlit auto-updates st.session_state.num_licences
+
+            st.number_input(
                 "Users",
                 min_value=0,
                 max_value=500,
-                value=st.session_state.num_licences,
                 step=1,
-                key="licence_counter",
+                key="num_licences",
+                on_change=on_user_change,
                 label_visibility="collapsed",
             )
-            st.session_state.num_licences = selected_licences
 
             p1, p2, p3, p4 = st.columns(4)
             with p1:
@@ -1152,13 +1153,17 @@ with tab_builder:
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
+            current_users = st.session_state.num_licences
+            current_mrc = float(current_users) * LICENCE_MONTHLY_RATE
+            current_act = float(current_users) * ACTIVATION_FEE_PER_USER
+
             st.metric(
                 label="Ongoing Monthly Costs (Ex VAT)",
-                value=f"£{mrc_ex:.2f}/mo",
-                delta=f"£{mrc_inc:.2f}/mo Inc VAT",
+                value=f"£{current_mrc:.2f}/mo",
+                delta=f"£{current_mrc * (1 + VAT_RATE):.2f}/mo Inc VAT" if current_users > 0 else None,
                 delta_color="off",
             )
-            st.caption(f"Initial One-Off Activation ({st.session_state.num_licences} users @ £{ACTIVATION_FEE_PER_USER:.2f}): **£{activation_ex:.2f} Ex VAT**")
+            st.caption(f"Initial One-Off Activation ({current_users} users @ £{ACTIVATION_FEE_PER_USER:.2f}): **£{current_act:.2f} Ex VAT**")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1253,13 +1258,14 @@ with tab_builder:
                         st.caption("<div style='text-align: center; color: #94A3B8; font-size: 0.8rem;'>Not in quote</div>", unsafe_allow_html=True)
 
         # Hardware List Expander
-        if h_items:
+        current_h_items = basket_items()
+        if current_h_items:
             st.markdown("<br>", unsafe_allow_html=True)
             with st.expander(
-                f"📋 Selected Hardware in Quotation ({sum(i['qty'] for i in h_items)} items) — Subtotal: £{hw_total_ex:.2f} Ex VAT",
+                f"📋 Selected Hardware in Quotation ({sum(i['qty'] for i in current_h_items)} items) — Subtotal: £{total_hardware_capex():.2f} Ex VAT",
                 expanded=True,
             ):
-                for item in h_items:
+                for item in current_h_items:
                     b1, b2, b3, b4 = st.columns([3, 1, 1.5, 1])
                     b1.write(f"**{item['name']}**")
                     b2.write(f"x{item['qty']}")
@@ -1342,18 +1348,18 @@ with tab_builder:
                     reseller_info,
                     customer_info,
                     st.session_state.num_licences,
-                    h_items,
+                    current_h_items,
                 )
 
                 st.session_state.active_quote_pdf = pdf_bytes
                 st.session_state.active_quote_ref = quote_ref
 
                 hw_summary = (
-                    "; ".join(f"{i['name']} x{i['qty']}" for i in h_items)
-                    if h_items
+                    "; ".join(f"{i['name']} x{i['qty']}" for i in current_h_items)
+                    if current_h_items
                     else "No Hardware (App/Licences Only)"
                 )
-                one_off_combined = activation_ex + hw_total_ex
+                one_off_combined = total_activation_fee() + total_hardware_capex()
                 record = {
                     "Quote Ref": [quote_ref],
                     "Date": [quote_date],
@@ -1363,10 +1369,10 @@ with tab_builder:
                     "Customer Contact": [c_contact],
                     "Customer Email": [c_email],
                     "Licences": [st.session_state.num_licences],
-                    "Ongoing Monthly Costs Ex VAT (£)": [f"{mrc_ex:.2f}"],
-                    "Ongoing Monthly Costs Inc VAT (£)": [f"{mrc_inc:.2f}"],
-                    "Activation Fee Ex VAT (£)": [f"{activation_ex:.2f}"],
-                    "Hardware Total Ex VAT (£)": [f"{hw_total_ex:.2f}"],
+                    "Ongoing Monthly Costs Ex VAT (£)": [f"{total_monthly_licences():.2f}"],
+                    "Ongoing Monthly Costs Inc VAT (£)": [f"{total_monthly_licences() * (1 + VAT_RATE):.2f}"],
+                    "Activation Fee Ex VAT (£)": [f"{total_activation_fee():.2f}"],
+                    "Hardware Total Ex VAT (£)": [f"{total_hardware_capex():.2f}"],
                     "Total One-Off Costs Ex VAT (£)": [f"{one_off_combined:.2f}"],
                     "Total One-Off Costs Inc VAT (£)": [f"{one_off_combined * (1 + VAT_RATE):.2f}"],
                     "Hardware Summary": [hw_summary],
@@ -1400,6 +1406,23 @@ with tab_customer_view:
     c1, c2, c3 = st.columns([1, 4, 1])
 
     with c2:
+        cust_users = st.session_state.get("num_licences", 0)
+        cust_mrc_ex = total_monthly_licences()
+        cust_mrc_vat = cust_mrc_ex * VAT_RATE
+        cust_mrc_inc = cust_mrc_ex + cust_mrc_vat
+
+        cust_activation_ex = total_activation_fee()
+        cust_hw_ex = total_hardware_capex()
+        cust_one_off_ex = cust_activation_ex + cust_hw_ex
+        cust_one_off_vat = cust_one_off_ex * VAT_RATE
+        cust_one_off_inc = cust_one_off_ex + cust_one_off_vat
+
+        cust_month_1_ex = cust_mrc_ex + cust_one_off_ex
+        cust_month_1_vat = cust_mrc_vat + cust_one_off_vat
+        cust_month_1_inc = cust_month_1_ex + cust_month_1_vat
+
+        cust_h_items = basket_items()
+
         # Proposal Header Card
         st.markdown(
             f"""
@@ -1423,36 +1446,36 @@ with tab_customer_view:
         st.markdown("<br>", unsafe_allow_html=True)
 
         # 3 Pillar Summary Cards showing Ex VAT & Inc VAT (20%)
-        kpi1, kpi2, kpi3 = st.columns(3)
-        with kpi1:
+        ckpi1, ckpi2, ckpi3 = st.columns(3)
+        with ckpi1:
             st.markdown(
                 f"""
                 <div class="vat-kpi-card" style="border-left: 4px solid #0F5A73;">
                     <div class="vat-kpi-title">Ongoing Monthly Costs</div>
-                    <div class="vat-kpi-ex">£{mrc_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
-                    <div class="vat-kpi-inc">£{mrc_inc:.2f} / mo <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                    <div class="vat-kpi-ex">£{cust_mrc_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{cust_mrc_inc:.2f} / mo <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-        with kpi2:
+        with ckpi2:
             st.markdown(
                 f"""
                 <div class="vat-kpi-card" style="border-left: 4px solid #38BDF8;">
                     <div class="vat-kpi-title">Total One-Off Costs</div>
-                    <div class="vat-kpi-ex">£{one_off_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
-                    <div class="vat-kpi-inc">£{one_off_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                    <div class="vat-kpi-ex">£{cust_one_off_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{cust_one_off_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-        with kpi3:
+        with ckpi3:
             st.markdown(
                 f"""
                 <div class="vat-kpi-card" style="border-left: 4px solid #10B981;">
                     <div class="vat-kpi-title">Total Month 1 Investment</div>
-                    <div class="vat-kpi-ex">£{month_1_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
-                    <div class="vat-kpi-inc">£{month_1_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                    <div class="vat-kpi-ex">£{cust_month_1_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{cust_month_1_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -1460,15 +1483,15 @@ with tab_customer_view:
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("#### 1. Ongoing Monthly Costs")
-        if st.session_state.num_licences > 0:
+        if cust_users > 0:
             st.markdown(
                 f"""
 | Service Description | Quantity | Unit Price (Ex VAT) | Monthly Total (Ex VAT) |
 | :--- | :---: | :---: | :---: |
-| **Hosted VoIP Cloud User Licence** (Apps, Call Recording, Inclusive UK Mins) | {st.session_state.num_licences} Users | £{LICENCE_MONTHLY_RATE:.2f} / mo | **£{mrc_ex:.2f} / mo** |
-| **Monthly Subtotal (Ex VAT)** | | | **£{mrc_ex:.2f} / mo** |
-| **VAT @ 20%** | | | **£{mrc_vat:.2f} / mo** |
-| **Total Ongoing Monthly Costs (Inc VAT)** | | | **£{mrc_inc:.2f} / mo** |
+| **Hosted VoIP Cloud User Licence** (Apps, Call Recording, Inclusive UK Mins) | {cust_users} Users | £{LICENCE_MONTHLY_RATE:.2f} / mo | **£{cust_mrc_ex:.2f} / mo** |
+| **Monthly Subtotal (Ex VAT)** | | | **£{cust_mrc_ex:.2f} / mo** |
+| **VAT @ 20%** | | | **£{cust_mrc_vat:.2f} / mo** |
+| **Total Ongoing Monthly Costs (Inc VAT)** | | | **£{cust_mrc_inc:.2f} / mo** |
 """
             )
         else:
@@ -1479,16 +1502,16 @@ with tab_customer_view:
         table_lines = [
             "| Item Description | Qty | Unit Price (Ex VAT) | Line Total (Ex VAT) |",
             "| :--- | :---: | :---: | :---: |",
-            f"| **Initial User Setup & Activation** - Provisioning, portal setup, and licence deployment | {st.session_state.num_licences} | £{ACTIVATION_FEE_PER_USER:.2f} | £{activation_ex:.2f} |"
+            f"| **Initial User Setup & Activation** - Provisioning, portal setup, and licence deployment | {cust_users} | £{ACTIVATION_FEE_PER_USER:.2f} | £{cust_activation_ex:.2f} |"
         ]
 
-        if h_items:
-            for item in h_items:
+        if cust_h_items:
+            for item in cust_h_items:
                 table_lines.append(f"| **{item['name']}** ({item.get('tag', 'Item')}) - {item['desc']} | {item['qty']} | £{item['price']:.2f} | £{item['line_total']:.2f} |")
 
-        table_lines.append(f"| **Subtotal (Ex VAT)** | | | **£{one_off_ex:.2f}** |")
-        table_lines.append(f"| **VAT @ 20%** | | | **£{one_off_vat:.2f}** |")
-        table_lines.append(f"| **Total One-Off Costs (Inc VAT)** | | | **£{one_off_inc:.2f}** |")
+        table_lines.append(f"| **Subtotal (Ex VAT)** | | | **£{cust_one_off_ex:.2f}** |")
+        table_lines.append(f"| **VAT @ 20%** | | | **£{cust_one_off_vat:.2f}** |")
+        table_lines.append(f"| **Total One-Off Costs (Inc VAT)** | | | **£{cust_one_off_inc:.2f}** |")
         st.markdown("\n".join(table_lines))
 
         # Simplified Commercial Note
