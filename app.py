@@ -538,23 +538,31 @@ def load_products():
 
 PRODUCTS = load_products()
 
-# 6. Session State Setup (Defaults to 0 on reload)
+# 6. Session State Setup
 if "basket" not in st.session_state:
     st.session_state.basket = {}
 
 if "num_licences" not in st.session_state:
     st.session_state.num_licences = 0
 
+# Synchronize widget state keys into session state for all products
+for p in PRODUCTS:
+    widget_key = f"qty_input_{p['id']}"
+    if widget_key not in st.session_state:
+        st.session_state[widget_key] = st.session_state.basket.get(p["id"], 0)
 
-def set_hardware_qty(product_id, new_qty):
+
+def on_hardware_qty_change(product_id):
     """
-    Sets product quantity and handles the smart PSU dependency:
-    Automatically adds a matching Yealink 10W PSU whenever a Yealink T-series
-    desk phone is added, while still leaving the PSU quantity fully overrideable.
+    Direct callback triggered instantly when any quantity is adjusted.
+    Handles the automatic Yealink 10W PSU allocation when T-series phones are added.
     """
+    widget_key = f"qty_input_{product_id}"
+    new_qty = st.session_state.get(widget_key, 0)
     old_qty = st.session_state.basket.get(product_id, 0)
     qty_diff = new_qty - old_qty
 
+    # Update basket
     if new_qty > 0:
         st.session_state.basket[product_id] = new_qty
     else:
@@ -562,16 +570,22 @@ def set_hardware_qty(product_id, new_qty):
 
     # Smart PSU Dependency for Yealink T-Series Desk Phones
     if product_id in YEALINK_T_SERIES_IDS and qty_diff > 0:
-        current_psu_qty = st.session_state.basket.get(PSU_ID, 0)
-        st.session_state.basket[PSU_ID] = current_psu_qty + qty_diff
+        current_psu = st.session_state.basket.get(PSU_ID, 0)
+        new_psu_qty = current_psu + qty_diff
+        st.session_state.basket[PSU_ID] = new_psu_qty
+        # Also sync PSU widget
+        st.session_state[f"qty_input_{PSU_ID}"] = new_psu_qty
+
+        prod_name = next((p["name"] for p in PRODUCTS if p["id"] == product_id), "phone")
         st.toast(
-            f"⚡ Automatically added {qty_diff}x Yealink 10W PSU for desk power (can be modified or removed if using PoE)",
+            f"⚡ Automatically added {qty_diff}x Yealink 10W PSU for {prod_name} (can be modified or removed if using PoE)",
             icon="🔌",
         )
 
 
 def remove_from_basket(product_id):
     st.session_state.basket.pop(product_id, None)
+    st.session_state[f"qty_input_{product_id}"] = 0
 
 
 def basket_items():
@@ -1045,7 +1059,7 @@ with tab_builder:
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 2: Handsets with Automatic Yealink T-Series PSU Dependency
+    # Step 2: Reactive Handset Catalogue with Automatic PSU Link
     st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets, Headsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
     categories = ["All Hardware", "Yealink Phones", "Fanvil Phones", "Cordless DECT", "Headsets & Accessories"]
@@ -1061,7 +1075,7 @@ with tab_builder:
     else:
         filtered_products = [p for p in PRODUCTS if p.get("category") == selected_category]
 
-    # Render products in a clean 4-column grid
+    # Render products in a clean 4-column grid with instant on_change callbacks
     for row_start in range(0, len(filtered_products), 4):
         row_slice = filtered_products[row_start : row_start + 4]
         cols = st.columns(4, gap="medium")
@@ -1103,24 +1117,26 @@ with tab_builder:
                         unsafe_allow_html=True,
                     )
 
-                current_qty = st.session_state.basket.get(product["id"], 0)
-                qty = st.number_input(
-                    "Qty",
+                # Instant Reactive Stepper (No double button clicks required!)
+                st.number_input(
+                    label=f"Qty of {product['name']}",
                     min_value=0,
                     max_value=100,
-                    value=current_qty,
                     step=1,
-                    key=f"qty_{product['id']}",
+                    key=f"qty_input_{product['id']}",
+                    on_change=on_hardware_qty_change,
+                    args=(product["id"],),
                     label_visibility="collapsed",
                 )
 
-                if st.button(f"Add to Quotation", key=f"btn_{product['id']}", use_container_width=True):
-                    set_hardware_qty(product["id"], qty)
-                    if qty > 0:
-                        st.toast(f"Updated {qty}x {product['name']} in quotation!", icon="✅")
-                    else:
-                        st.toast(f"Removed {product['name']} from quotation.", icon="ℹ️")
-                    st.rerun()
+                current_in_basket = st.session_state.basket.get(product["id"], 0)
+                if current_in_basket > 0:
+                    st.markdown(
+                        f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.85rem; margin-top: 4px;'>In Quotation: <strong>{current_in_basket}</strong> (£{current_in_basket * product['price']:.2f})</div>",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.caption("<div style='text-align: center; color: #94A3B8; font-size: 0.8rem;'>Not in quote</div>", unsafe_allow_html=True)
 
     # Hardware List Expander with Clear Removal / Editing
     hw_list = basket_items()
