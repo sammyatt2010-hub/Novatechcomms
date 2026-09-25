@@ -71,7 +71,7 @@ def get_base64_image(image_path):
     return None
 
 
-# 4. High-Contrast Styles + Toast Popup Styling
+# 4. High-Contrast Styles
 st.markdown(
     """
     <style>
@@ -223,32 +223,17 @@ st.markdown(
         letter-spacing: 0.5px;
     }
 
-    /* Number Steppers & Inputs */
-    div[data-testid="stNumberInput"] div[data-baseweb="input"] {
-        background-color: #FFFFFF !important;
-        border: 1.5px solid #94A3B8 !important;
-        border-radius: 8px !important;
-    }
-    div[data-testid="stNumberInput"] input {
+    /* Stepper Button Styling */
+    .qty-display {
+        font-size: 1.15rem;
+        font-weight: 800;
         color: #0F172A !important;
-        -webkit-text-fill-color: #0F172A !important;
-        background-color: #FFFFFF !important;
-        font-weight: 700 !important;
-        font-size: 1rem !important;
-        text-align: center !important;
-    }
-    div[data-testid="stNumberInput"] button {
-        background-color: #F1F5F9 !important;
-        border: 1px solid #CBD5E1 !important;
-        color: #0F172A !important;
-    }
-    div[data-testid="stNumberInput"] button:hover {
-        background-color: #E2E8F0 !important;
-    }
-    div[data-testid="stNumberInput"] button svg {
-        fill: #0F172A !important;
-        stroke: #0F172A !important;
-        color: #0F172A !important;
+        text-align: center;
+        background: #F8FAFC;
+        border: 1.5px solid #CBD5E1;
+        border-radius: 8px;
+        padding: 0.4rem 0;
+        min-width: 48px;
     }
 
     /* Text Inputs */
@@ -296,18 +281,16 @@ st.markdown(
     div[data-testid="stDownloadButton"] > button {
         background: linear-gradient(135deg, #0F5A73 0%, #164E63 100%) !important;
         color: #FFFFFF !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         font-weight: 700 !important;
         border: none !important;
-        padding: 0.75rem 1.5rem !important;
-        box-shadow: 0 4px 10px rgba(15, 90, 115, 0.25) !important;
-        transition: all 0.2s ease !important;
+        padding: 0.45rem 1rem !important;
+        box-shadow: 0 2px 6px rgba(15, 90, 115, 0.2) !important;
     }
     .stButton > button:hover,
     div[data-testid="stFormSubmitButton"] > button:hover,
     div[data-testid="stDownloadButton"] > button:hover {
-        box-shadow: 0 6px 14px rgba(15, 90, 115, 0.35) !important;
-        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(15, 90, 115, 0.3) !important;
     }
     .stButton > button p,
     div[data-testid="stFormSubmitButton"] > button p,
@@ -378,8 +361,7 @@ LICENCE_MONTHLY_RATE = 7.00
 ACTIVATION_FEE_PER_USER = 25.00
 CATALOGUE_FILE = "catalogue.json"
 
-# Yealink T-Series Desk Phones that require a 10W PSU
-YEALINK_T_SERIES_IDS = ["t73w", "t74w", "t85w", "t87w", "t88w_pro"]
+YEALINK_T_SERIES_IDS = {"t73w", "t74w", "t85w", "t87w", "t88w_pro"}
 PSU_ID = "psu_10w"
 
 _FALLBACK_PRODUCTS = [
@@ -545,49 +527,38 @@ if "basket" not in st.session_state:
 if "num_licences" not in st.session_state:
     st.session_state.num_licences = 0
 
-# Track baseline of Yealink T-Series phones to detect changes
-if "last_t_series_total" not in st.session_state:
-    st.session_state.last_t_series_total = 0
 
-
-def get_current_t_series_total():
-    """Returns the sum of all Yealink T-Series phones currently in basket."""
-    return sum(st.session_state.basket.get(pid, 0) for pid in YEALINK_T_SERIES_IDS)
-
-
-def on_qty_change(product_id):
+def update_qty(product_id, delta):
     """
-    Directly updates the basket from the number input widget and
-    automatically recalculates/adds the matching Yealink 10W PSUs.
+    Modifies the quantity of a product and automatically links
+    Yealink 10W PSUs whenever a Yealink T-Series desk phone is modified.
     """
-    widget_val = st.session_state.get(f"input_{product_id}", 0)
-    if widget_val > 0:
-        st.session_state.basket[product_id] = widget_val
+    current = st.session_state.basket.get(product_id, 0)
+    new_val = max(0, current + delta)
+
+    if new_val > 0:
+        st.session_state.basket[product_id] = new_val
     else:
         st.session_state.basket.pop(product_id, None)
 
-    # Check if a Yealink T-Series phone changed
+    # Automatic Yealink 10W PSU allocation for T-Series desk phones
     if product_id in YEALINK_T_SERIES_IDS:
-        new_t_total = get_current_t_series_total()
-        diff = new_t_total - st.session_state.last_t_series_total
-        
-        # When phones are added, add the exact same number of PSUs
-        if diff > 0:
-            current_psus = st.session_state.basket.get(PSU_ID, 0)
-            new_psu_count = current_psus + diff
-            st.session_state.basket[PSU_ID] = new_psu_count
+        current_psu = st.session_state.basket.get(PSU_ID, 0)
+        new_psu = max(0, current_psu + delta)
+        if new_psu > 0:
+            st.session_state.basket[PSU_ID] = new_psu
+        else:
+            st.session_state.basket.pop(PSU_ID, None)
+
+        if delta > 0:
             st.toast(
-                f"⚡ Auto-added {diff}x Yealink 10W PSU(s) for desk phone power (can be reduced if site uses PoE).",
-                icon="🔌"
+                f"⚡ Auto-added {delta}x Yealink 10W PSU (can be reduced on the PSU card if using PoE)",
+                icon="🔌",
             )
-        
-        st.session_state.last_t_series_total = new_t_total
 
 
 def remove_from_basket(product_id):
     st.session_state.basket.pop(product_id, None)
-    if product_id in YEALINK_T_SERIES_IDS:
-        st.session_state.last_t_series_total = get_current_t_series_total()
 
 
 def basket_items():
@@ -920,7 +891,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     t_clause.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), c_warning_bg),
+                ("BACKGROUND", (0, 0), (-1, -1), c_warning_bg),
                 ("BOX", (0, 0), (-1, -1), 1.2, c_warning_border),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
@@ -1061,7 +1032,7 @@ with tab_builder:
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 2: Reactive Handset Catalogue with Automatic PSU Link
+    # Step 2: Handsets with Direct Persistent +/- Steppers & Automatic PSU Link
     st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets, Headsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
     categories = ["All Hardware", "Yealink Phones", "Fanvil Phones", "Cordless DECT", "Headsets & Accessories"]
@@ -1077,7 +1048,7 @@ with tab_builder:
     else:
         filtered_products = [p for p in PRODUCTS if p.get("category") == selected_category]
 
-    # Render products in a clean 4-column grid
+    # Render products in a clean 4-column grid with dedicated Steppers
     for row_start in range(0, len(filtered_products), 4):
         row_slice = filtered_products[row_start : row_start + 4]
         cols = st.columns(4, gap="medium")
@@ -1119,31 +1090,33 @@ with tab_builder:
                         unsafe_allow_html=True,
                     )
 
-                # Get true quantity from basket
-                curr_qty = st.session_state.basket.get(product["id"], 0)
+                # Direct Reactive Stepper Controls (Direct basket write, 100% reliable)
+                qty_in_quote = st.session_state.basket.get(product["id"], 0)
 
-                # Reactive Stepper bound directly to on_qty_change
-                st.number_input(
-                    label=f"Qty of {product['name']}",
-                    min_value=0,
-                    max_value=100,
-                    value=curr_qty,
-                    step=1,
-                    key=f"input_{product['id']}",
-                    on_change=on_qty_change,
-                    args=(product["id"],),
-                    label_visibility="collapsed",
-                )
+                step_col1, step_col2, step_col3 = st.columns([1, 1.4, 1])
+                with step_col1:
+                    if st.button("➖", key=f"minus_{product['id']}", use_container_width=True):
+                        update_qty(product["id"], -1)
+                        st.rerun()
 
-                if curr_qty > 0:
+                with step_col2:
+                    st.markdown(f"<div class='qty-display'>{qty_in_quote}</div>", unsafe_allow_html=True)
+
+                with step_col3:
+                    if st.button("➕", key=f"plus_{product['id']}", use_container_width=True):
+                        update_qty(product["id"], 1)
+                        st.rerun()
+
+                # Status label
+                if qty_in_quote > 0:
                     st.markdown(
-                        f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.85rem; margin-top: 4px;'>In Quotation: <strong>{curr_qty}</strong> (£{curr_qty * product['price']:.2f})</div>",
+                        f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.82rem; margin-top: 4px;'>Subtotal: £{qty_in_quote * product['price']:.2f}</div>",
                         unsafe_allow_html=True,
                     )
                 else:
                     st.caption("<div style='text-align: center; color: #94A3B8; font-size: 0.8rem;'>Not in quote</div>", unsafe_allow_html=True)
 
-    # Hardware List Expander with Clear Removal / Editing
+    # Hardware List Expander
     hw_list = basket_items()
     if hw_list:
         st.markdown("<br>", unsafe_allow_html=True)
