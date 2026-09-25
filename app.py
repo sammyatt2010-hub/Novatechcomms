@@ -71,7 +71,7 @@ def get_base64_image(image_path):
     return None
 
 
-# 4. High-Contrast Styles + Strict Card Boundaries
+# 4. High-Contrast Styles + Outline Product Cards
 st.markdown(
     """
     <style>
@@ -154,19 +154,23 @@ st.markdown(
         gap: 8px;
     }
 
-    /* 🚨 ROCK SOLID CARD CONTAINER FIX 🚨 */
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        background-color: #FFFFFF !important;
-        border: 1.5px solid #CBD5E1 !important;
-        border-radius: 14px !important;
-        padding: 1.15rem !important;
-        margin-bottom: 1.5rem !important;
-        box-shadow: 0 4px 10px rgba(15, 90, 115, 0.06) !important;
-        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+    /* 🚨 EXPLICIT OUTLINE PRODUCT CARD 🚨 */
+    .product-outline-card {
+        background-color: #FFFFFF;
+        border: 2px solid #CBD5E1;
+        border-radius: 14px;
+        padding: 1.25rem 1.1rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 4px 8px -1px rgba(15, 90, 115, 0.05);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+        transition: all 0.2s ease-in-out;
     }
-    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
-        border-color: #0F5A73 !important;
-        box-shadow: 0 8px 20px -2px rgba(15, 90, 115, 0.14) !important;
+    .product-outline-card:hover {
+        border-color: #0F5A73;
+        box-shadow: 0 10px 20px -3px rgba(15, 90, 115, 0.12);
         transform: translateY(-2px);
     }
 
@@ -858,7 +862,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     t_sum.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), c_bg),
+                ("BACKGROUND", (0, 0), (-1, 0), c_bg),
                 ("BOX", (0, 0), (-1, -1), 1.5, c_primary),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
@@ -893,7 +897,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     t_clause.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), c_warning_bg),
+                ("BACKGROUND", (0, 0), (-1, 0), c_warning_bg),
                 ("BOX", (0, 0), (-1, -1), 1.2, c_warning_border),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
@@ -939,7 +943,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
 tab_builder, tab_customer_view = st.tabs(["🛠️ Build Quotation", "💼 Customer Presentation View"])
 
 
-# --- TAB 1: BUILD QUOTATION (Proportional, centered & live-calculated) ---
+# --- TAB 1: BUILD QUOTATION ---
 with tab_builder:
     st.markdown("<br>", unsafe_allow_html=True)
     b_col1, b_main, b_col3 = st.columns([1, 4, 1])
@@ -965,7 +969,7 @@ with tab_builder:
             unsafe_allow_html=True,
         )
 
-        # Reactive live calculation container
+        # Reactive live calculations
         live_mrc_ex = total_monthly_licences()
         live_mrc_inc = live_mrc_ex * (1 + VAT_RATE)
 
@@ -1102,75 +1106,60 @@ with tab_builder:
         else:
             filtered_products = [p for p in PRODUCTS if p.get("category") == selected_category]
 
-        # 🚨 Render products inside dedicated, bordered card enclosures 🚨
+        # 🚨 PROMINENT OUTLINE CARDS (One per phone, avoiding any row-overlap ambiguity) 🚨
         for row_start in range(0, len(filtered_products), 4):
             row_slice = filtered_products[row_start : row_start + 4]
             cols = st.columns(4, gap="medium")
 
             for col, product in zip(cols, row_slice):
                 with col:
-                    with st.container(border=True):
-                        # Top header row within card
-                        st.markdown(
-                            f"""
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    # Self-contained Outline Card Div
+                    b64_uri = get_base64_image(product["image"])
+                    img_html = f'<img src="{b64_uri}" style="max-height: 130px; max-width: 90%; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;" alt="{product["name"]}">' if b64_uri else f'<div style="color: #94A3B8; font-size: 0.8rem; text-align: center;">Image loading ({product["image"]})</div>'
+
+                    card_top_html = f"""
+                    <div class="product-outline-card">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
                                 <span class="card-badge">{product.get('tag', 'Handset')}</span>
                                 <span style="font-weight: 800; color: #0F5A73; font-size: 1.15rem;">£{product['price']:.2f}</span>
                             </div>
-                            <div style="min-height: 52px;">
-                                <div style="font-weight: 800; color: #0F172A; font-size: 0.95rem;">{product["name"]}</div>
-                                <div style="color: #64748B; font-size: 0.76rem; line-height: 1.2; margin-top: 2px;">{product["desc"]}</div>
+                            <div style="min-height: 50px;">
+                                <div style="font-weight: 800; color: #0F172A; font-size: 0.95rem; line-height: 1.25;">{product["name"]}</div>
+                                <div style="color: #64748B; font-size: 0.75rem; line-height: 1.25; margin-top: 3px;">{product["desc"]}</div>
                             </div>
-                            """,
+                            <div style="height: 145px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #F8FAFC; border-radius: 10px; margin: 0.75rem 0; padding: 6px; border: 1px solid #E2E8F0;">
+                                {img_html}
+                            </div>
+                        </div>
+                    """
+                    st.markdown(card_top_html, unsafe_allow_html=True)
+
+                    # Controls inside card
+                    qty_in_quote = st.session_state.basket.get(product["id"], 0)
+
+                    step_col1, step_col2, step_col3 = st.columns([1, 1.4, 1])
+                    with step_col1:
+                        if st.button("➖", key=f"minus_{product['id']}", use_container_width=True):
+                            update_qty(product["id"], -1)
+                            st.rerun()
+
+                    with step_col2:
+                        st.markdown(f"<div class='qty-display'>{qty_in_quote}</div>", unsafe_allow_html=True)
+
+                    with step_col3:
+                        if st.button("➕", key=f"plus_{product['id']}", use_container_width=True):
+                            update_qty(product["id"], 1)
+                            st.rerun()
+
+                    # Status line & Card Close
+                    if qty_in_quote > 0:
+                        st.markdown(
+                            f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.82rem; margin-top: 6px;'>Subtotal: £{qty_in_quote * product['price']:.2f} Ex VAT</div></div>",
                             unsafe_allow_html=True,
                         )
-
-                        # Rigid Base64 Image Stage
-                        b64_uri = get_base64_image(product["image"])
-                        if b64_uri:
-                            st.markdown(
-                                f"""
-                                <div style="height: 150px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; padding: 6px; border: 1px solid #F1F5F9;">
-                                    <img src="{b64_uri}" style="max-height: 135px; max-width: 90%; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;" alt="{product['name']}">
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
-                        else:
-                            st.markdown(
-                                f"""
-                                <div style="height: 150px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; color: #94A3B8; font-size: 0.82rem; border: 1px solid #F1F5F9;">
-                                    Image loading ({product['image']})
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
-
-                        # Direct Reactive Stepper Controls
-                        qty_in_quote = st.session_state.basket.get(product["id"], 0)
-
-                        step_col1, step_col2, step_col3 = st.columns([1, 1.4, 1])
-                        with step_col1:
-                            if st.button("➖", key=f"minus_{product['id']}", use_container_width=True):
-                                update_qty(product["id"], -1)
-                                st.rerun()
-
-                        with step_col2:
-                            st.markdown(f"<div class='qty-display'>{qty_in_quote}</div>", unsafe_allow_html=True)
-
-                        with step_col3:
-                            if st.button("➕", key=f"plus_{product['id']}", use_container_width=True):
-                                update_qty(product["id"], 1)
-                                st.rerun()
-
-                        # Status label
-                        if qty_in_quote > 0:
-                            st.markdown(
-                                f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.82rem; margin-top: 4px;'>Subtotal: £{qty_in_quote * product['price']:.2f} Ex VAT</div>",
-                                unsafe_allow_html=True,
-                            )
-                        else:
-                            st.caption("<div style='text-align: center; color: #94A3B8; font-size: 0.8rem;'>Not in quote</div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown("<div style='text-align: center; color: #94A3B8; font-size: 0.8rem; margin-top: 6px;'>Not in quote</div></div>", unsafe_allow_html=True)
 
         # Hardware List Expander
         current_h_items = basket_items()
