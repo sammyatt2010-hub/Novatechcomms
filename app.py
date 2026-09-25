@@ -327,7 +327,7 @@ st.markdown(
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04) !important;
     }
 
-    /* Customer View KPI Box */
+    /* KPI Summary Cards (Used consistently across both tabs) */
     .vat-kpi-card {
         background: #FFFFFF;
         border: 1px solid #E2E8F0;
@@ -354,6 +354,16 @@ st.markdown(
         font-weight: 700;
         color: #334155;
         margin-top: 0.35rem;
+    }
+
+    /* Clean Content Framing Box */
+    .section-box {
+        background: #FFFFFF;
+        border-radius: 14px;
+        border: 1px solid #E2E8F0;
+        padding: 1.75rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
     }
 
     /* Native Markdown Tables */
@@ -979,324 +989,409 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     return buffer.getvalue()
 
 
-# 8. Novalink Hero Brand Header Card
-st.markdown(
-    """
-    <div class="novalink-banner">
-        <span class="brand-tag">Novalink Communications</span>
-        <h1 class="brand-title">Novalink Telephony Quotation</h1>
-        <p class="brand-subtitle">Official Partner Portal: Cloud VoIP User Licences &amp; Enterprise Hardware</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-# 9. Navigation Tabs
+# 8. Navigation Tabs
 tab_builder, tab_customer_view = st.tabs(["🛠️ Build Quotation", "💼 Customer Presentation View"])
 
-# --- TAB 1: BUILD QUOTATION ---
-with tab_builder:
-    # Step 1: Licences
-    st.markdown('<div class="section-headline"><span>Step 1:</span> Hosted User Licences (Ongoing Monthly)</div>', unsafe_allow_html=True)
+# Calculate Live Totals (Used across both tabs)
+mrc_ex = total_monthly_licences()
+mrc_vat = mrc_ex * VAT_RATE
+mrc_inc = mrc_ex + mrc_vat
 
-    lic_col1, lic_col2 = st.columns([3, 2], gap="large")
-    with lic_col1:
+activation_ex = total_activation_fee()
+hw_total_ex = total_hardware_capex()
+one_off_ex = activation_ex + hw_total_ex
+one_off_vat = one_off_ex * VAT_RATE
+one_off_inc = one_off_ex + one_off_vat
+
+month_1_ex = mrc_ex + one_off_ex
+month_1_vat = mrc_vat + one_off_vat
+month_1_inc = month_1_ex + month_1_vat
+
+h_items = basket_items()
+
+
+# --- TAB 1: BUILD QUOTATION (Centered & Framed matching Customer View) ---
+with tab_builder:
+    st.markdown("<br>", unsafe_allow_html=True)
+    b_col1, b_main, b_col3 = st.columns([1, 4, 1])
+
+    with b_main:
+        # Novalink Hero Brand Header Card
         st.markdown(
             f"""
-            <div style="background: linear-gradient(135deg, #0F5A73 0%, #164E63 100%); border-radius: 14px; padding: 1.6rem; box-shadow: 0 4px 10px rgba(15, 90, 115, 0.15);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 1.35rem; font-weight: 800; color: #FFFFFF !important;">Hosted Cloud User Licence</span>
-                    <span style="background: #38BDF8; color: #0F172A !important; font-weight: 800; font-size: 0.95rem; padding: 4px 12px; border-radius: 9999px;">
-                        £{LICENCE_MONTHLY_RATE:.2f} / user / mo
-                    </span>
-                </div>
-                <div style="color: #E2E8F0 !important; font-size: 0.88rem; margin: 0.85rem 0 1rem 0;">
-                    Complete unified communications seat with enterprise features included:
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; font-size: 0.85rem; color: #F8FAFC !important;">
-                    <div style="color: #FFFFFF !important;">✓ Mobile App (iOS / Android)</div>
-                    <div style="color: #FFFFFF !important;">✓ Cloud Call Recording</div>
-                    <div style="color: #FFFFFF !important;">✓ Desktop PC Softphone</div>
-                    <div style="color: #FFFFFF !important;">✓ Auto-Attendant & IVR</div>
-                    <div style="color: #FFFFFF !important;">✓ Voicemail-to-Email</div>
-                    <div style="color: #FFFFFF !important;">✓ Inclusive UK Landline/Mobile Calls</div>
-                </div>
-                <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.82rem; color: #BAE6FD;">
-                    ⚡ One-off user activation &amp; provisioning: <strong>£{ACTIVATION_FEE_PER_USER:.2f} per user</strong> (billed upfront in Month 1)
+            <div style="background-color: #FFFFFF; border-radius: 14px; border: 2px solid #0F5A73; padding: 2rem; box-shadow: 0 4px 12px rgba(15, 90, 115, 0.08); margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #E2E8F0; padding-bottom: 1.25rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <div style="color: #0F5A73; font-size: 1.7rem; font-weight: 800;">Novalink Telephony Quotation</div>
+                        <div style="color: #64748B; font-size: 0.95rem; margin-top: 3px;">Interactive Quote Builder: Combine Cloud User Licences with Desktop Hardware</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="background: #E0F2FE; color: #0369A1; font-weight: 700; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; display: inline-block;">
+                            {datetime.now().strftime('%d %B %Y')}
+                        </span>
+                    </div>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    with lic_col2:
-        st.markdown("**Number of Hosted Users**")
-        selected_licences = st.number_input(
-            "Users",
-            min_value=0,
-            max_value=500,
-            value=st.session_state.num_licences,
-            step=1,
-            key="licence_counter",
+        # 3 Pillar Summary Cards: Matches Customer Presentation View
+        kpi1, kpi2, kpi3 = st.columns(3)
+        with kpi1:
+            st.markdown(
+                f"""
+                <div class="vat-kpi-card" style="border-left: 4px solid #0F5A73;">
+                    <div class="vat-kpi-title">Ongoing Monthly Costs</div>
+                    <div class="vat-kpi-ex">£{mrc_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{mrc_inc:.2f} / mo <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with kpi2:
+            st.markdown(
+                f"""
+                <div class="vat-kpi-card" style="border-left: 4px solid #38BDF8;">
+                    <div class="vat-kpi-title">Total One-Off Costs</div>
+                    <div class="vat-kpi-ex">£{one_off_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{one_off_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with kpi3:
+            st.markdown(
+                f"""
+                <div class="vat-kpi-card" style="border-left: 4px solid #10B981;">
+                    <div class="vat-kpi-title">Total Month 1 Investment</div>
+                    <div class="vat-kpi-ex">£{month_1_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{month_1_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Step 1: Licences
+        st.markdown(
+            """
+            <div class="section-box">
+                <div class="section-headline"><span>Step 1:</span> Hosted User Licences (Ongoing Monthly)</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        lic_col1, lic_col2 = st.columns([3, 2], gap="large")
+        with lic_col1:
+            st.markdown(
+                f"""
+                <div style="background: linear-gradient(135deg, #0F5A73 0%, #164E63 100%); border-radius: 14px; padding: 1.5rem; box-shadow: 0 4px 10px rgba(15, 90, 115, 0.15);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 1.3rem; font-weight: 800; color: #FFFFFF !important;">Hosted Cloud User Licence</span>
+                        <span style="background: #38BDF8; color: #0F172A !important; font-weight: 800; font-size: 0.95rem; padding: 4px 12px; border-radius: 9999px;">
+                            £{LICENCE_MONTHLY_RATE:.2f} / user / mo
+                        </span>
+                    </div>
+                    <div style="color: #E2E8F0 !important; font-size: 0.88rem; margin: 0.75rem 0;">
+                        Complete unified communications seat with enterprise features included:
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; font-size: 0.85rem; color: #F8FAFC !important;">
+                        <div style="color: #FFFFFF !important;">✓ Mobile App (iOS / Android)</div>
+                        <div style="color: #FFFFFF !important;">✓ Cloud Call Recording</div>
+                        <div style="color: #FFFFFF !important;">✓ Desktop PC Softphone</div>
+                        <div style="color: #FFFFFF !important;">✓ Auto-Attendant & IVR</div>
+                        <div style="color: #FFFFFF !important;">✓ Voicemail-to-Email</div>
+                        <div style="color: #FFFFFF !important;">✓ Inclusive UK Landline/Mobile Calls</div>
+                    </div>
+                    <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.82rem; color: #BAE6FD;">
+                        ⚡ One-off user activation &amp; provisioning: <strong>£{ACTIVATION_FEE_PER_USER:.2f} per user</strong> (billed upfront in Month 1)
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        with lic_col2:
+            st.markdown("**Number of Hosted Users**")
+            selected_licences = st.number_input(
+                "Users",
+                min_value=0,
+                max_value=500,
+                value=st.session_state.num_licences,
+                step=1,
+                key="licence_counter",
+                label_visibility="collapsed",
+            )
+            st.session_state.num_licences = selected_licences
+
+            p1, p2, p3, p4 = st.columns(4)
+            with p1:
+                st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
+                if st.button("5 Users", key="preset_5"):
+                    st.session_state.num_licences = 5
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+            with p2:
+                st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
+                if st.button("10 Users", key="preset_10"):
+                    st.session_state.num_licences = 10
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+            with p3:
+                st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
+                if st.button("20 Users", key="preset_20"):
+                    st.session_state.num_licences = 20
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+            with p4:
+                st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
+                if st.button("50 Users", key="preset_50"):
+                    st.session_state.num_licences = 50
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            st.metric(
+                label="Ongoing Monthly Costs (Ex VAT)",
+                value=f"£{mrc_ex:.2f}/mo",
+                delta=f"£{mrc_inc:.2f}/mo Inc VAT",
+                delta_color="off",
+            )
+            st.caption(f"Initial One-Off Activation ({st.session_state.num_licences} users @ £{ACTIVATION_FEE_PER_USER:.2f}): **£{activation_ex:.2f} Ex VAT**")
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Step 2: Handsets
+        st.markdown(
+            """
+            <div class="section-box">
+                <div class="section-headline"><span>Step 2:</span> Optional Handsets, Headsets &amp; Hardware (One-off Upfront)</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        categories = ["All Hardware", "Yealink Phones", "Fanvil Phones", "Cordless DECT", "Headsets & Accessories"]
+        selected_category = st.radio(
+            "Filter Hardware Category",
+            categories,
+            horizontal=True,
             label_visibility="collapsed",
         )
-        st.session_state.num_licences = selected_licences
 
-        p1, p2, p3, p4 = st.columns(4)
-        with p1:
-            st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
-            if st.button("5 Users", key="preset_5"):
-                st.session_state.num_licences = 5
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        with p2:
-            st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
-            if st.button("10 Users", key="preset_10"):
-                st.session_state.num_licences = 10
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        with p3:
-            st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
-            if st.button("20 Users", key="preset_20"):
-                st.session_state.num_licences = 20
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        with p4:
-            st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
-            if st.button("50 Users", key="preset_50"):
-                st.session_state.num_licences = 50
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+        if selected_category == "All Hardware":
+            filtered_products = PRODUCTS
+        else:
+            filtered_products = [p for p in PRODUCTS if p.get("category") == selected_category]
 
-        mrc_preview = total_monthly_licences()
-        st.metric(
-            label="Ongoing Monthly Costs (Ex VAT)",
-            value=f"£{mrc_preview:.2f}/mo",
-            delta=f"£{mrc_preview * (1 + VAT_RATE):.2f}/mo Inc VAT",
-            delta_color="off",
+        # Render products in a clean 4-column grid
+        for row_start in range(0, len(filtered_products), 4):
+            row_slice = filtered_products[row_start : row_start + 4]
+            cols = st.columns(4, gap="medium")
+
+            for col, product in zip(cols, row_slice):
+                with col:
+                    st.markdown(
+                        f"""
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                            <span class="card-badge">{product.get('tag', 'Handset')}</span>
+                            <span style="font-weight: 800; color: #0F5A73; font-size: 1.15rem;">£{product['price']:.2f}</span>
+                        </div>
+                        <div style="min-height: 52px;">
+                            <div style="font-weight: 800; color: #0F172A; font-size: 0.95rem;">{product["name"]}</div>
+                            <div style="color: #64748B; font-size: 0.76rem; line-height: 1.2; margin-top: 2px;">{product["desc"]}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+                    # Rigid Base64 Image Stage
+                    b64_uri = get_base64_image(product["image"])
+                    if b64_uri:
+                        st.markdown(
+                            f"""
+                            <div style="height: 155px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; padding: 6px;">
+                                <img src="{b64_uri}" style="max-height: 140px; max-width: 90%; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;" alt="{product['name']}">
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.markdown(
+                            f"""
+                            <div style="height: 155px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; color: #94A3B8; font-size: 0.82rem;">
+                                Image loading ({product['image']})
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+                    # Direct Reactive Stepper Controls
+                    qty_in_quote = st.session_state.basket.get(product["id"], 0)
+
+                    step_col1, step_col2, step_col3 = st.columns([1, 1.4, 1])
+                    with step_col1:
+                        if st.button("➖", key=f"minus_{product['id']}", use_container_width=True):
+                            update_qty(product["id"], -1)
+                            st.rerun()
+
+                    with step_col2:
+                        st.markdown(f"<div class='qty-display'>{qty_in_quote}</div>", unsafe_allow_html=True)
+
+                    with step_col3:
+                        if st.button("➕", key=f"plus_{product['id']}", use_container_width=True):
+                            update_qty(product["id"], 1)
+                            st.rerun()
+
+                    # Status label
+                    if qty_in_quote > 0:
+                        st.markdown(
+                            f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.82rem; margin-top: 4px;'>Subtotal: £{qty_in_quote * product['price']:.2f} Ex VAT</div>",
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.caption("<div style='text-align: center; color: #94A3B8; font-size: 0.8rem;'>Not in quote</div>", unsafe_allow_html=True)
+
+        # Hardware List Expander
+        if h_items:
+            st.markdown("<br>", unsafe_allow_html=True)
+            with st.expander(
+                f"📋 Selected Hardware in Quotation ({sum(i['qty'] for i in h_items)} items) — Subtotal: £{hw_total_ex:.2f} Ex VAT",
+                expanded=True,
+            ):
+                for item in h_items:
+                    b1, b2, b3, b4 = st.columns([3, 1, 1.5, 1])
+                    b1.write(f"**{item['name']}**")
+                    b2.write(f"x{item['qty']}")
+                    b3.write(f"£{item['line_total']:.2f} Ex VAT")
+                    if b4.button("Remove", key=f"del_{item['id']}"):
+                        remove_from_basket(item["id"])
+                        st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Step 3: Quote Form & PDF
+        st.markdown(
+            """
+            <div class="section-box">
+                <div class="section-headline"><span>Step 3:</span> Quotation Details &amp; PDF Generation</div>
+            """,
+            unsafe_allow_html=True,
         )
 
-        st.caption(f"Initial One-Off Activation ({st.session_state.num_licences} users @ £{ACTIVATION_FEE_PER_USER:.2f}): **£{total_activation_fee():.2f} Ex VAT**")
+        with st.form(key="telephony_quote_form"):
+            col_reseller, col_customer = st.columns(2, gap="large")
 
-    st.markdown("<br><hr><br>", unsafe_allow_html=True)
+            with col_reseller:
+                st.markdown("#### 🏢 Your Company Details (Service Provider)")
+                r_company = st.text_input("Your Company / Reseller Name*", placeholder="e.g. Acme Communications Ltd")
+                r_contact = st.text_input("Your Name / Account Manager*", placeholder="e.g. John Doe")
+                r_email = st.text_input("Your Email Address*", placeholder="e.g. sales@acmecomms.co.uk")
+                r_phone = st.text_input("Your Phone Number", placeholder="e.g. 0330 123 4567")
 
-    # Step 2: Handsets
-    st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets, Headsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
+            with col_customer:
+                st.markdown("#### 👤 Proposed Customer Details")
+                c_company = st.text_input("Customer Company Name*", placeholder="e.g. Apex Logistics Ltd")
+                c_contact = st.text_input("Customer Contact Name*", placeholder="e.g. Sarah Jenkins")
+                c_email = st.text_input("Customer Email Address*", placeholder="e.g. sarah@apexlogistics.co.uk")
+                c_phone = st.text_input("Customer Phone Number", placeholder="e.g. 0161 123 4567")
 
-    categories = ["All Hardware", "Yealink Phones", "Fanvil Phones", "Cordless DECT", "Headsets & Accessories"]
-    selected_category = st.radio(
-        "Filter Hardware Category",
-        categories,
-        horizontal=True,
-        label_visibility="collapsed",
-    )
+            st.markdown("<hr style='margin: 1.25rem 0;'>", unsafe_allow_html=True)
+            st.markdown("#### 📦 Delivery / Site Address *(Optional - can be left blank for initial quotes)*")
+            d1, d2, d3 = st.columns([2, 1, 1])
+            with d1:
+                del_addr1 = st.text_input("Address Line 1", placeholder="Building name or street")
+            with d2:
+                del_city = st.text_input("Town / City", placeholder="Town / City")
+            with d3:
+                del_postcode = st.text_input("Postcode", placeholder="Postcode")
 
-    if selected_category == "All Hardware":
-        filtered_products = PRODUCTS
-    else:
-        filtered_products = [p for p in PRODUCTS if p.get("category") == selected_category]
+            generate_submitted = st.form_submit_button(
+                "💾 Save Quotation & Generate Official PDF", use_container_width=True
+            )
 
-    # Render products in a clean 4-column grid
-    for row_start in range(0, len(filtered_products), 4):
-        row_slice = filtered_products[row_start : row_start + 4]
-        cols = st.columns(4, gap="medium")
+        if generate_submitted:
+            if not r_company or not r_contact or not r_email:
+                st.error("Please ensure your Service Provider details are complete.")
+            elif not c_company or not c_contact or not c_email:
+                st.error("Please fill in the Customer's Company, Contact Name, and Email.")
+            else:
+                quote_ref = f"NL-{datetime.now().strftime('%y%m%d%H%M')}"
+                quote_date = datetime.now().strftime("%d %B %Y")
+                
+                addr_parts = [p.strip() for p in [del_addr1, del_city, del_postcode] if p.strip()]
+                full_delivery = ", ".join(addr_parts) if addr_parts else "N/A"
 
-        for col, product in zip(cols, row_slice):
-            with col:
-                st.markdown(
-                    f"""
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                        <span class="card-badge">{product.get('tag', 'Handset')}</span>
-                        <span style="font-weight: 800; color: #0F5A73; font-size: 1.15rem;">£{product['price']:.2f}</span>
-                    </div>
-                    <div style="min-height: 52px;">
-                        <div style="font-weight: 800; color: #0F172A; font-size: 0.95rem;">{product["name"]}</div>
-                        <div style="color: #64748B; font-size: 0.76rem; line-height: 1.2; margin-top: 2px;">{product["desc"]}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                reseller_info = {
+                    "company": r_company,
+                    "name": r_contact,
+                    "email": r_email,
+                    "phone": r_phone,
+                }
+                customer_info = {
+                    "company": c_company,
+                    "name": c_contact,
+                    "email": c_email,
+                    "phone": c_phone,
+                    "delivery": full_delivery,
+                }
+                quote_meta = {"ref": quote_ref, "date": quote_date}
+
+                pdf_bytes = generate_quotation_pdf(
+                    quote_meta,
+                    reseller_info,
+                    customer_info,
+                    st.session_state.num_licences,
+                    h_items,
                 )
 
-                # Rigid Base64 Image Stage
-                b64_uri = get_base64_image(product["image"])
-                if b64_uri:
-                    st.markdown(
-                        f"""
-                        <div style="height: 155px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; padding: 6px;">
-                            <img src="{b64_uri}" style="max-height: 140px; max-width: 90%; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;" alt="{product['name']}">
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                st.session_state.active_quote_pdf = pdf_bytes
+                st.session_state.active_quote_ref = quote_ref
+
+                hw_summary = (
+                    "; ".join(f"{i['name']} x{i['qty']}" for i in h_items)
+                    if h_items
+                    else "No Hardware (App/Licences Only)"
+                )
+                one_off_combined = activation_ex + hw_total_ex
+                record = {
+                    "Quote Ref": [quote_ref],
+                    "Date": [quote_date],
+                    "Brand": ["Novalink Telephony"],
+                    "Reseller": [r_company],
+                    "Customer Company": [c_company],
+                    "Customer Contact": [c_contact],
+                    "Customer Email": [c_email],
+                    "Licences": [st.session_state.num_licences],
+                    "Ongoing Monthly Costs Ex VAT (£)": [f"{mrc_ex:.2f}"],
+                    "Ongoing Monthly Costs Inc VAT (£)": [f"{mrc_inc:.2f}"],
+                    "Activation Fee Ex VAT (£)": [f"{activation_ex:.2f}"],
+                    "Hardware Total Ex VAT (£)": [f"{hw_total_ex:.2f}"],
+                    "Total One-Off Costs Ex VAT (£)": [f"{one_off_combined:.2f}"],
+                    "Total One-Off Costs Inc VAT (£)": [f"{one_off_combined * (1 + VAT_RATE):.2f}"],
+                    "Hardware Summary": [hw_summary],
+                    "Delivery Address": [full_delivery],
+                }
+                df = pd.DataFrame(record)
+                if not os.path.isfile("quotes.csv"):
+                    df.to_csv("quotes.csv", index=False)
                 else:
-                    st.markdown(
-                        f"""
-                        <div style="height: 155px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; color: #94A3B8; font-size: 0.82rem;">
-                            Image loading ({product['image']})
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    df.to_csv("quotes.csv", mode="a", header=False, index=False)
 
-                # Direct Reactive Stepper Controls
-                qty_in_quote = st.session_state.basket.get(product["id"], 0)
+                st.success(f"Quotation #{quote_ref} generated successfully under Novalink Telephony!")
 
-                step_col1, step_col2, step_col3 = st.columns([1, 1.4, 1])
-                with step_col1:
-                    if st.button("➖", key=f"minus_{product['id']}", use_container_width=True):
-                        update_qty(product["id"], -1)
-                        st.rerun()
-
-                with step_col2:
-                    st.markdown(f"<div class='qty-display'>{qty_in_quote}</div>", unsafe_allow_html=True)
-
-                with step_col3:
-                    if st.button("➕", key=f"plus_{product['id']}", use_container_width=True):
-                        update_qty(product["id"], 1)
-                        st.rerun()
-
-                # Status label
-                if qty_in_quote > 0:
-                    st.markdown(
-                        f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.82rem; margin-top: 4px;'>Subtotal: £{qty_in_quote * product['price']:.2f} Ex VAT</div>",
-                        unsafe_allow_html=True,
-                    )
-                else:
-                    st.caption("<div style='text-align: center; color: #94A3B8; font-size: 0.8rem;'>Not in quote</div>", unsafe_allow_html=True)
-
-    # Hardware List Expander
-    hw_list = basket_items()
-    if hw_list:
-        st.markdown("<br>", unsafe_allow_html=True)
-        with st.expander(
-            f"📋 Selected Hardware in Quotation ({sum(i['qty'] for i in hw_list)} items) — Subtotal: £{total_hardware_capex():.2f} Ex VAT",
-            expanded=True,
-        ):
-            for item in hw_list:
-                b1, b2, b3, b4 = st.columns([3, 1, 1.5, 1])
-                b1.write(f"**{item['name']}**")
-                b2.write(f"x{item['qty']}")
-                b3.write(f"£{item['line_total']:.2f} Ex VAT")
-                if b4.button("Remove", key=f"del_{item['id']}"):
-                    remove_from_basket(item["id"])
-                    st.rerun()
-
-    st.markdown("<br><hr><br>", unsafe_allow_html=True)
-
-    # Step 3: Blank Quote Form
-    st.markdown('<div class="section-headline"><span>Step 3:</span> Quotation Details &amp; PDF Generation</div>', unsafe_allow_html=True)
-
-    with st.form(key="telephony_quote_form"):
-        col_reseller, col_customer = st.columns(2, gap="large")
-
-        with col_reseller:
-            st.markdown("#### 🏢 Your Company Details (Service Provider)")
-            r_company = st.text_input("Your Company / Reseller Name*", placeholder="e.g. Acme Communications Ltd")
-            r_contact = st.text_input("Your Name / Account Manager*", placeholder="e.g. John Doe")
-            r_email = st.text_input("Your Email Address*", placeholder="e.g. sales@acmecomms.co.uk")
-            r_phone = st.text_input("Your Phone Number", placeholder="e.g. 0330 123 4567")
-
-        with col_customer:
-            st.markdown("#### 👤 Proposed Customer Details")
-            c_company = st.text_input("Customer Company Name*", placeholder="e.g. Apex Logistics Ltd")
-            c_contact = st.text_input("Customer Contact Name*", placeholder="e.g. Sarah Jenkins")
-            c_email = st.text_input("Customer Email Address*", placeholder="e.g. sarah@apexlogistics.co.uk")
-            c_phone = st.text_input("Customer Phone Number", placeholder="e.g. 0161 123 4567")
-
-        st.markdown("<hr style='margin: 1.25rem 0;'>", unsafe_allow_html=True)
-        st.markdown("#### 📦 Delivery / Site Address *(Optional - can be left blank for initial quotes)*")
-        d1, d2, d3 = st.columns([2, 1, 1])
-        with d1:
-            del_addr1 = st.text_input("Address Line 1", placeholder="Building name or street")
-        with d2:
-            del_city = st.text_input("Town / City", placeholder="Town / City")
-        with d3:
-            del_postcode = st.text_input("Postcode", placeholder="Postcode")
-
-        generate_submitted = st.form_submit_button(
-            "💾 Save Quotation & Generate Official PDF", use_container_width=True
-        )
-
-    if generate_submitted:
-        if not r_company or not r_contact or not r_email:
-            st.error("Please ensure your Service Provider details are complete.")
-        elif not c_company or not c_contact or not c_email:
-            st.error("Please fill in the Customer's Company, Contact Name, and Email.")
-        else:
-            quote_ref = f"NL-{datetime.now().strftime('%y%m%d%H%M')}"
-            quote_date = datetime.now().strftime("%d %B %Y")
-            
-            addr_parts = [p.strip() for p in [del_addr1, del_city, del_postcode] if p.strip()]
-            full_delivery = ", ".join(addr_parts) if addr_parts else "N/A"
-
-            reseller_info = {
-                "company": r_company,
-                "name": r_contact,
-                "email": r_email,
-                "phone": r_phone,
-            }
-            customer_info = {
-                "company": c_company,
-                "name": c_contact,
-                "email": c_email,
-                "phone": c_phone,
-                "delivery": full_delivery,
-            }
-            quote_meta = {"ref": quote_ref, "date": quote_date}
-
-            pdf_bytes = generate_quotation_pdf(
-                quote_meta,
-                reseller_info,
-                customer_info,
-                st.session_state.num_licences,
-                hw_list,
+        # Download action button
+        if "active_quote_pdf" in st.session_state:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.download_button(
+                label=f"⬇️ Download Official PDF Document ({st.session_state.active_quote_ref}.pdf)",
+                data=st.session_state.active_quote_pdf,
+                file_name=f"{st.session_state.active_quote_ref}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
             )
 
-            st.session_state.active_quote_pdf = pdf_bytes
-            st.session_state.active_quote_ref = quote_ref
-
-            hw_summary = (
-                "; ".join(f"{i['name']} x{i['qty']}" for i in hw_list)
-                if hw_list
-                else "No Hardware (App/Licences Only)"
-            )
-            one_off_combined = total_activation_fee() + total_hardware_capex()
-            record = {
-                "Quote Ref": [quote_ref],
-                "Date": [quote_date],
-                "Brand": ["Novalink Telephony"],
-                "Reseller": [r_company],
-                "Customer Company": [c_company],
-                "Customer Contact": [c_contact],
-                "Customer Email": [c_email],
-                "Licences": [st.session_state.num_licences],
-                "Ongoing Monthly Costs Ex VAT (£)": [f"{total_monthly_licences():.2f}"],
-                "Ongoing Monthly Costs Inc VAT (£)": [f"{total_monthly_licences() * (1 + VAT_RATE):.2f}"],
-                "Activation Fee Ex VAT (£)": [f"{total_activation_fee():.2f}"],
-                "Hardware Total Ex VAT (£)": [f"{total_hardware_capex():.2f}"],
-                "Total One-Off Costs Ex VAT (£)": [f"{one_off_combined:.2f}"],
-                "Total One-Off Costs Inc VAT (£)": [f"{one_off_combined * (1 + VAT_RATE):.2f}"],
-                "Hardware Summary": [hw_summary],
-                "Delivery Address": [full_delivery],
-            }
-            df = pd.DataFrame(record)
-            if not os.path.isfile("quotes.csv"):
-                df.to_csv("quotes.csv", index=False)
-            else:
-                df.to_csv("quotes.csv", mode="a", header=False, index=False)
-
-            st.success(f"Quotation #{quote_ref} generated successfully under Novalink Telephony!")
-
-    # Download action button
-    if "active_quote_pdf" in st.session_state:
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.download_button(
-            label=f"⬇️ Download Official PDF Document ({st.session_state.active_quote_ref}.pdf)",
-            data=st.session_state.active_quote_pdf,
-            file_name=f"{st.session_state.active_quote_ref}.pdf",
-            mime="application/pdf",
-            use_container_width=True,
-        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # --- TAB 2: CUSTOMER PRESENTATION VIEW ---
@@ -1305,22 +1400,6 @@ with tab_customer_view:
     c1, c2, c3 = st.columns([1, 4, 1])
 
     with c2:
-        mrc_ex = total_monthly_licences()
-        mrc_vat = mrc_ex * VAT_RATE
-        mrc_inc = mrc_ex + mrc_vat
-
-        activation_ex = total_activation_fee()
-        hw_total_ex = total_hardware_capex()
-        one_off_ex = activation_ex + hw_total_ex
-        one_off_vat = one_off_ex * VAT_RATE
-        one_off_inc = one_off_ex + one_off_vat
-
-        month_1_ex = mrc_ex + one_off_ex
-        month_1_vat = mrc_vat + one_off_vat
-        month_1_inc = month_1_ex + month_1_vat
-
-        h_items = basket_items()
-
         # Proposal Header Card
         st.markdown(
             f"""
