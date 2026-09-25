@@ -373,10 +373,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 5. Full Hardware & Accessories Catalogue (Fanvil + Yealink Additions)
+# 5. Full Hardware & Accessories Catalogue
 LICENCE_MONTHLY_RATE = 7.00
 ACTIVATION_FEE_PER_USER = 25.00
 CATALOGUE_FILE = "catalogue.json"
+
+# IDs of Yealink T-Series Desk Phones that require a 10W PSU
+YEALINK_T_SERIES_IDS = {"t73w", "t74w", "t85w", "t87w", "t88w_pro"}
+PSU_ID = "psu_10w"
 
 _FALLBACK_PRODUCTS = [
     # --- Fanvil Core Series ---
@@ -416,13 +420,13 @@ _FALLBACK_PRODUCTS = [
         "image": "Linkvil W620W Rugged.png",
         "price": 149.00,
     },
-    # --- Yealink T7/T8 Prime Series ---
+    # --- Yealink T-Series Prime Desk Phones ---
     {
         "id": "t73w",
         "category": "Yealink Phones",
         "tag": "Smart Business",
         "name": "Yealink T73W",
-        "desc": "Entry-level executive IP phone with dual-band Wi-Fi and Bluetooth",
+        "desc": "Entry-level executive IP desk phone with dual-band Wi-Fi and Bluetooth",
         "image": "Yealink T73W.png",
         "price": 78.00,
     },
@@ -542,11 +546,28 @@ if "num_licences" not in st.session_state:
     st.session_state.num_licences = 0
 
 
-def set_hardware_qty(product_id, qty):
-    if qty > 0:
-        st.session_state.basket[product_id] = qty
+def set_hardware_qty(product_id, new_qty):
+    """
+    Sets product quantity and handles the smart PSU dependency:
+    Automatically adds a matching Yealink 10W PSU whenever a Yealink T-series
+    desk phone is added, while still leaving the PSU quantity fully overrideable.
+    """
+    old_qty = st.session_state.basket.get(product_id, 0)
+    qty_diff = new_qty - old_qty
+
+    if new_qty > 0:
+        st.session_state.basket[product_id] = new_qty
     else:
         st.session_state.basket.pop(product_id, None)
+
+    # Smart PSU Dependency for Yealink T-Series Desk Phones
+    if product_id in YEALINK_T_SERIES_IDS and qty_diff > 0:
+        current_psu_qty = st.session_state.basket.get(PSU_ID, 0)
+        st.session_state.basket[PSU_ID] = current_psu_qty + qty_diff
+        st.toast(
+            f"⚡ Automatically added {qty_diff}x Yealink 10W PSU for desk power (can be modified or removed if using PoE)",
+            icon="🔌",
+        )
 
 
 def remove_from_basket(product_id):
@@ -1024,7 +1045,7 @@ with tab_builder:
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 2: Handsets with Category Filters & Symmetrical 4-Column Grid
+    # Step 2: Handsets with Automatic Yealink T-Series PSU Dependency
     st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets, Headsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
     categories = ["All Hardware", "Yealink Phones", "Fanvil Phones", "Cordless DECT", "Headsets & Accessories"]
@@ -1040,7 +1061,7 @@ with tab_builder:
     else:
         filtered_products = [p for p in PRODUCTS if p.get("category") == selected_category]
 
-    # Render products cleanly in 4-column rows
+    # Render products in a clean 4-column grid
     for row_start in range(0, len(filtered_products), 4):
         row_slice = filtered_products[row_start : row_start + 4]
         cols = st.columns(4, gap="medium")
@@ -1101,7 +1122,7 @@ with tab_builder:
                         st.toast(f"Removed {product['name']} from quotation.", icon="ℹ️")
                     st.rerun()
 
-    # Hardware List Expander
+    # Hardware List Expander with Clear Removal / Editing
     hw_list = basket_items()
     if hw_list:
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1320,7 +1341,7 @@ with tab_customer_view:
         st.markdown(
             """
             <div style="background-color: #F8FAFC; border: 1px dashed #CBD5E1; padding: 1rem 1.25rem; border-radius: 8px; font-size: 0.85rem; color: #64748B; margin-top: 1rem;">
-                <strong>Commercial Notes:</strong> Quotation valid for 30 calendar days. All prices exclude VAT. Pre-configured handsets include power adapters, desk stands, and lifetime manufacturer hardware warranties. Formal terms and contractual commitments are detailed on the generated agreement paperwork.
+                <strong>Commercial Notes:</strong> Quotation valid for 30 calendar days. All prices exclude VAT. Pre-configured handsets include power adapters (unless specified as PoE network powered), desk stands, and lifetime manufacturer hardware warranties. Formal terms and contractual commitments are detailed on the generated agreement paperwork.
             </div>
             """,
             unsafe_allow_html=True,
