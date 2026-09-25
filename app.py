@@ -223,7 +223,7 @@ st.markdown(
         letter-spacing: 0.5px;
     }
 
-    /* Stepper Button Styling */
+    /* Stepper Styling */
     .qty-display {
         font-size: 1.15rem;
         font-weight: 800;
@@ -327,6 +327,35 @@ st.markdown(
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04) !important;
     }
 
+    /* Customer View KPI Box */
+    .vat-kpi-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+    }
+    .vat-kpi-title {
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748B;
+        margin-bottom: 0.5rem;
+    }
+    .vat-kpi-ex {
+        font-size: 1.7rem;
+        font-weight: 800;
+        color: #0F5A73;
+        line-height: 1.1;
+    }
+    .vat-kpi-inc {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #334155;
+        margin-top: 0.35rem;
+    }
+
     /* Native Markdown Tables */
     table {
         width: 100% !important;
@@ -359,10 +388,8 @@ st.markdown(
 # 5. Full Hardware & Accessories Catalogue
 LICENCE_MONTHLY_RATE = 7.00
 ACTIVATION_FEE_PER_USER = 25.00
+VAT_RATE = 0.20
 CATALOGUE_FILE = "catalogue.json"
-
-YEALINK_T_SERIES_IDS = {"t73w", "t74w", "t85w", "t87w", "t88w_pro"}
-PSU_ID = "psu_10w"
 
 _FALLBACK_PRODUCTS = [
     # --- Fanvil Core Series ---
@@ -529,10 +556,7 @@ if "num_licences" not in st.session_state:
 
 
 def update_qty(product_id, delta):
-    """
-    Modifies the quantity of a product and automatically links
-    Yealink 10W PSUs whenever a Yealink T-Series desk phone is modified.
-    """
+    """Modifies the quantity of a product in the quotation."""
     current = st.session_state.basket.get(product_id, 0)
     new_val = max(0, current + delta)
 
@@ -540,21 +564,6 @@ def update_qty(product_id, delta):
         st.session_state.basket[product_id] = new_val
     else:
         st.session_state.basket.pop(product_id, None)
-
-    # Automatic Yealink 10W PSU allocation for T-Series desk phones
-    if product_id in YEALINK_T_SERIES_IDS:
-        current_psu = st.session_state.basket.get(PSU_ID, 0)
-        new_psu = max(0, current_psu + delta)
-        if new_psu > 0:
-            st.session_state.basket[PSU_ID] = new_psu
-        else:
-            st.session_state.basket.pop(PSU_ID, None)
-
-        if delta > 0:
-            st.toast(
-                f"⚡ Auto-added {delta}x Yealink 10W PSU (can be reduced on the PSU card if using PoE)",
-                icon="🔌",
-            )
 
 
 def remove_from_basket(product_id):
@@ -733,12 +742,15 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(Paragraph("1. Ongoing Monthly Costs", sec_head))
     story.append(Spacer(1, 4))
     mrc_total = num_users * LICENCE_MONTHLY_RATE
+    mrc_vat = mrc_total * VAT_RATE
+    mrc_inc_vat = mrc_total + mrc_vat
+
     mrc_data = [
         [
             Paragraph("Description", th_style),
             Paragraph("Users", th_style),
-            Paragraph("Unit Price", th_style),
-            Paragraph("Monthly Total", th_style),
+            Paragraph("Unit Price (Ex VAT)", th_style),
+            Paragraph("Monthly Total (Ex VAT)", th_style),
         ],
         [
             Paragraph(
@@ -756,6 +768,18 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
             "",
             Paragraph(f"<b>£{mrc_total:.2f} / mo</b>", td_bold),
         ],
+        [
+            Paragraph("VAT @ 20%", td_style),
+            "",
+            "",
+            Paragraph(f"£{mrc_vat:.2f} / mo", td_style),
+        ],
+        [
+            Paragraph("<b>Total Ongoing Monthly Costs (Inc VAT)</b>", td_bold),
+            "",
+            "",
+            Paragraph(f"<b>£{mrc_inc_vat:.2f} / mo</b>", td_bold),
+        ],
     ]
     t_mrc = Table(mrc_data, colWidths=[290, 50, 100, 100])
     t_mrc.setStyle(
@@ -764,7 +788,8 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
                 ("BACKGROUND", (0, 0), (-1, 0), c_primary),
                 ("BOX", (0, 0), (-1, -1), 1, c_border),
                 ("INNERGRID", (0, 0), (-1, -1), 0.5, c_border),
-                ("BACKGROUND", (0, -1), (-1, -1), c_bg),
+                ("BACKGROUND", (0, 2), (-1, 2), c_bg),
+                ("BACKGROUND", (0, 4), (-1, 4), c_bg),
                 ("TOPPADDING", (0, 0), (-1, -1), 4.5),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
             ]
@@ -780,13 +805,15 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     activation_total = num_users * ACTIVATION_FEE_PER_USER
     hw_total = sum(i["line_total"] for i in hw_items)
     one_off_grand_total = activation_total + hw_total
+    one_off_vat = one_off_grand_total * VAT_RATE
+    one_off_inc_vat = one_off_grand_total + one_off_vat
 
     upfront_data = [
         [
             Paragraph("Item / Description", th_style),
             Paragraph("Qty", th_style),
-            Paragraph("Unit Price", th_style),
-            Paragraph("Line Total", th_style),
+            Paragraph("Unit Price (Ex VAT)", th_style),
+            Paragraph("Line Total (Ex VAT)", th_style),
         ],
         [
             Paragraph(
@@ -822,6 +849,22 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
             Paragraph(f"<b>£{one_off_grand_total:.2f}</b>", td_bold),
         ]
     )
+    upfront_data.append(
+        [
+            Paragraph("VAT @ 20%", td_style),
+            "",
+            "",
+            Paragraph(f"£{one_off_vat:.2f}", td_style),
+        ]
+    )
+    upfront_data.append(
+        [
+            Paragraph("<b>Total One-Off Upfront Costs (Inc VAT)</b>", td_bold),
+            "",
+            "",
+            Paragraph(f"<b>£{one_off_inc_vat:.2f}</b>", td_bold),
+        ]
+    )
 
     t_upfront = Table(upfront_data, colWidths=[290, 50, 100, 100])
     t_upfront.setStyle(
@@ -830,6 +873,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
                 ("BACKGROUND", (0, 0), (-1, 0), c_primary),
                 ("BOX", (0, 0), (-1, -1), 1, c_border),
                 ("INNERGRID", (0, 0), (-1, -1), 0.5, c_border),
+                ("BACKGROUND", (0, -3), (-1, -3), c_bg),
                 ("BACKGROUND", (0, -1), (-1, -1), c_bg),
                 ("TOPPADDING", (0, 0), (-1, -1), 4.5),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
@@ -840,15 +884,16 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(Spacer(1, 10))
 
     # Summary Box
-    first_month = mrc_total + one_off_grand_total
+    first_month_ex = mrc_total + one_off_grand_total
+    first_month_inc = mrc_inc_vat + one_off_inc_vat
+
     summary_data = [
         [
             Paragraph("<b>FINANCIAL SUMMARY</b>", td_bold),
             Paragraph(
-                f"<b>Ongoing Monthly Costs:</b> £{mrc_total:.2f} + VAT / month<br/>"
-                f"<b>Total One-Off Upfront Costs:</b> £{one_off_grand_total:.2f} + VAT "
-                f"<font color='#64748B' size=7.5>(Includes £{activation_total:.2f} Activation + £{hw_total:.2f} Hardware)</font><br/>"
-                f"<b>Total Month 1 Investment:</b> £{first_month:.2f} + VAT",
+                f"<b>Ongoing Monthly Costs:</b> £{mrc_total:.2f} Ex VAT (£{mrc_inc_vat:.2f} Inc VAT / mo)<br/>"
+                f"<b>Total One-Off Upfront Costs:</b> £{one_off_grand_total:.2f} Ex VAT (£{one_off_inc_vat:.2f} Inc VAT)<br/>"
+                f"<b>Total Month 1 Investment:</b> <b>£{first_month_ex:.2f} Ex VAT (£{first_month_inc:.2f} Inc VAT)</b>",
                 td_style,
             ),
         ]
@@ -874,7 +919,8 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
         "All hosted user licences quoted herein are strictly subject to a <b>minimum 24-month agreement term</b>. "
         "In the event of early termination or cancellation of services prior to the expiry of the initial 24-month term, "
         "<b>early termination charges will be applicable and payable in full</b> for all outstanding monthly licence fees "
-        "remaining across the unexpired portion of the agreement."
+        "remaining across the unexpired portion of the agreement.<br/>"
+        "<b>Commercial Notes:</b> Quotation valid for 30 calendar days."
     )
     clause_para = Paragraph(
         clause_text,
@@ -1022,17 +1068,19 @@ with tab_builder:
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
+        mrc_preview = total_monthly_licences()
         st.metric(
-            label="Ongoing Monthly Costs",
-            value=f"£{total_monthly_licences():.2f}/mo",
-            delta=f"{st.session_state.num_licences} users @ £{LICENCE_MONTHLY_RATE:.2f}",
+            label="Ongoing Monthly Costs (Ex VAT)",
+            value=f"£{mrc_preview:.2f}/mo",
+            delta=f"£{mrc_preview * (1 + VAT_RATE):.2f}/mo Inc VAT",
+            delta_color="off",
         )
 
-        st.caption(f"Initial One-Off Activation ({st.session_state.num_licences} users @ £{ACTIVATION_FEE_PER_USER:.2f}): **£{total_activation_fee():.2f}**")
+        st.caption(f"Initial One-Off Activation ({st.session_state.num_licences} users @ £{ACTIVATION_FEE_PER_USER:.2f}): **£{total_activation_fee():.2f} Ex VAT**")
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 2: Handsets with Direct Persistent +/- Steppers & Automatic PSU Link
+    # Step 2: Handsets
     st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets, Headsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
     categories = ["All Hardware", "Yealink Phones", "Fanvil Phones", "Cordless DECT", "Headsets & Accessories"]
@@ -1048,7 +1096,7 @@ with tab_builder:
     else:
         filtered_products = [p for p in PRODUCTS if p.get("category") == selected_category]
 
-    # Render products in a clean 4-column grid with dedicated Steppers
+    # Render products in a clean 4-column grid
     for row_start in range(0, len(filtered_products), 4):
         row_slice = filtered_products[row_start : row_start + 4]
         cols = st.columns(4, gap="medium")
@@ -1090,7 +1138,7 @@ with tab_builder:
                         unsafe_allow_html=True,
                     )
 
-                # Direct Reactive Stepper Controls (Direct basket write, 100% reliable)
+                # Direct Reactive Stepper Controls
                 qty_in_quote = st.session_state.basket.get(product["id"], 0)
 
                 step_col1, step_col2, step_col3 = st.columns([1, 1.4, 1])
@@ -1110,7 +1158,7 @@ with tab_builder:
                 # Status label
                 if qty_in_quote > 0:
                     st.markdown(
-                        f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.82rem; margin-top: 4px;'>Subtotal: £{qty_in_quote * product['price']:.2f}</div>",
+                        f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.82rem; margin-top: 4px;'>Subtotal: £{qty_in_quote * product['price']:.2f} Ex VAT</div>",
                         unsafe_allow_html=True,
                     )
                 else:
@@ -1121,14 +1169,14 @@ with tab_builder:
     if hw_list:
         st.markdown("<br>", unsafe_allow_html=True)
         with st.expander(
-            f"📋 Selected Hardware in Quotation ({sum(i['qty'] for i in hw_list)} items) — Hardware Subtotal: £{total_hardware_capex():.2f}",
+            f"📋 Selected Hardware in Quotation ({sum(i['qty'] for i in hw_list)} items) — Subtotal: £{total_hardware_capex():.2f} Ex VAT",
             expanded=True,
         ):
             for item in hw_list:
                 b1, b2, b3, b4 = st.columns([3, 1, 1.5, 1])
                 b1.write(f"**{item['name']}**")
                 b2.write(f"x{item['qty']}")
-                b3.write(f"£{item['line_total']:.2f}")
+                b3.write(f"£{item['line_total']:.2f} Ex VAT")
                 if b4.button("Remove", key=f"del_{item['id']}"):
                     remove_from_basket(item["id"])
                     st.rerun()
@@ -1222,11 +1270,13 @@ with tab_builder:
                 "Customer Contact": [c_contact],
                 "Customer Email": [c_email],
                 "Licences": [st.session_state.num_licences],
-                "Ongoing Monthly Costs (£)": [f"{total_monthly_licences():.2f}"],
-                "Activation Fee (£)": [f"{total_activation_fee():.2f}"],
+                "Ongoing Monthly Costs Ex VAT (£)": [f"{total_monthly_licences():.2f}"],
+                "Ongoing Monthly Costs Inc VAT (£)": [f"{total_monthly_licences() * (1 + VAT_RATE):.2f}"],
+                "Activation Fee Ex VAT (£)": [f"{total_activation_fee():.2f}"],
+                "Hardware Total Ex VAT (£)": [f"{total_hardware_capex():.2f}"],
+                "Total One-Off Costs Ex VAT (£)": [f"{one_off_combined:.2f}"],
+                "Total One-Off Costs Inc VAT (£)": [f"{one_off_combined * (1 + VAT_RATE):.2f}"],
                 "Hardware Summary": [hw_summary],
-                "Hardware Total (£)": [f"{total_hardware_capex():.2f}"],
-                "Total One-Off Costs (£)": [f"{one_off_combined:.2f}"],
                 "Delivery Address": [full_delivery],
             }
             df = pd.DataFrame(record)
@@ -1255,11 +1305,20 @@ with tab_customer_view:
     c1, c2, c3 = st.columns([1, 4, 1])
 
     with c2:
-        mrc = total_monthly_licences()
-        activation = total_activation_fee()
-        hw_total = total_hardware_capex()
-        one_off_total = activation + hw_total
-        month_1 = mrc + one_off_total
+        mrc_ex = total_monthly_licences()
+        mrc_vat = mrc_ex * VAT_RATE
+        mrc_inc = mrc_ex + mrc_vat
+
+        activation_ex = total_activation_fee()
+        hw_total_ex = total_hardware_capex()
+        one_off_ex = activation_ex + hw_total_ex
+        one_off_vat = one_off_ex * VAT_RATE
+        one_off_inc = one_off_ex + one_off_vat
+
+        month_1_ex = mrc_ex + one_off_ex
+        month_1_vat = mrc_vat + one_off_vat
+        month_1_inc = month_1_ex + month_1_vat
+
         h_items = basket_items()
 
         # Proposal Header Card
@@ -1284,24 +1343,40 @@ with tab_customer_view:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # 3 Pillar Summary: Ongoing Monthly vs One-Off Upfront vs Month 1 Total
+        # 3 Pillar Summary Cards showing Ex VAT & Inc VAT (20%)
         kpi1, kpi2, kpi3 = st.columns(3)
         with kpi1:
-            st.metric(
-                label="Ongoing Monthly Costs",
-                value=f"£{mrc:.2f}/mo",
+            st.markdown(
+                f"""
+                <div class="vat-kpi-card" style="border-left: 4px solid #0F5A73;">
+                    <div class="vat-kpi-title">Ongoing Monthly Costs</div>
+                    <div class="vat-kpi-ex">£{mrc_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{mrc_inc:.2f} / mo <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
         with kpi2:
-            st.metric(
-                label="Total One-Off Costs",
-                value=f"£{one_off_total:.2f}",
-                delta=f"Activation: £{activation:.2f} | Hardware: £{hw_total:.2f}",
-                delta_color="off",
+            st.markdown(
+                f"""
+                <div class="vat-kpi-card" style="border-left: 4px solid #38BDF8;">
+                    <div class="vat-kpi-title">Total One-Off Costs</div>
+                    <div class="vat-kpi-ex">£{one_off_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{one_off_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
         with kpi3:
-            st.metric(
-                label="Total Month 1 Investment",
-                value=f"£{month_1:.2f}",
+            st.markdown(
+                f"""
+                <div class="vat-kpi-card" style="border-left: 4px solid #10B981;">
+                    <div class="vat-kpi-title">Total Month 1 Investment</div>
+                    <div class="vat-kpi-ex">£{month_1_ex:.2f} <span style="font-size: 0.9rem; font-weight: 600; color: #64748B;">Ex VAT</span></div>
+                    <div class="vat-kpi-inc">£{month_1_inc:.2f} <span style="font-size: 0.8rem; font-weight: 500; color: #64748B;">Inc VAT (20%)</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1309,9 +1384,12 @@ with tab_customer_view:
         if st.session_state.num_licences > 0:
             st.markdown(
                 f"""
-| Service Description | Quantity | Unit Price | Monthly Total |
+| Service Description | Quantity | Unit Price (Ex VAT) | Monthly Total (Ex VAT) |
 | :--- | :---: | :---: | :---: |
-| **Hosted VoIP Cloud User Licence** (Apps, Call Recording, Inclusive UK Mins) | {st.session_state.num_licences} Users | £{LICENCE_MONTHLY_RATE:.2f} / mo | **£{mrc:.2f} / mo** |
+| **Hosted VoIP Cloud User Licence** (Apps, Call Recording, Inclusive UK Mins) | {st.session_state.num_licences} Users | £{LICENCE_MONTHLY_RATE:.2f} / mo | **£{mrc_ex:.2f} / mo** |
+| **Monthly Subtotal (Ex VAT)** | | | **£{mrc_ex:.2f} / mo** |
+| **VAT @ 20%** | | | **£{mrc_vat:.2f} / mo** |
+| **Total Ongoing Monthly Costs (Inc VAT)** | | | **£{mrc_inc:.2f} / mo** |
 """
             )
         else:
@@ -1320,22 +1398,25 @@ with tab_customer_view:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("#### 2. One-Off Upfront Costs")
         table_lines = [
-            "| Item Description | Qty | Unit Price | Total |",
+            "| Item Description | Qty | Unit Price (Ex VAT) | Line Total (Ex VAT) |",
             "| :--- | :---: | :---: | :---: |",
-            f"| **Initial User Setup & Activation** - Provisioning, portal setup, and licence deployment | {st.session_state.num_licences} | £{ACTIVATION_FEE_PER_USER:.2f} | £{activation:.2f} |"
+            f"| **Initial User Setup & Activation** - Provisioning, portal setup, and licence deployment | {st.session_state.num_licences} | £{ACTIVATION_FEE_PER_USER:.2f} | £{activation_ex:.2f} |"
         ]
 
         if h_items:
             for item in h_items:
                 table_lines.append(f"| **{item['name']}** ({item.get('tag', 'Item')}) - {item['desc']} | {item['qty']} | £{item['price']:.2f} | £{item['line_total']:.2f} |")
 
-        table_lines.append(f"| **Total One-Off Upfront Costs** | | | **£{one_off_total:.2f}** |")
+        table_lines.append(f"| **Subtotal (Ex VAT)** | | | **£{one_off_ex:.2f}** |")
+        table_lines.append(f"| **VAT @ 20%** | | | **£{one_off_vat:.2f}** |")
+        table_lines.append(f"| **Total One-Off Costs (Inc VAT)** | | | **£{one_off_inc:.2f}** |")
         st.markdown("\n".join(table_lines))
 
+        # Simplified Commercial Note
         st.markdown(
             """
-            <div style="background-color: #F8FAFC; border: 1px dashed #CBD5E1; padding: 1rem 1.25rem; border-radius: 8px; font-size: 0.85rem; color: #64748B; margin-top: 1rem;">
-                <strong>Commercial Notes:</strong> Quotation valid for 30 calendar days. All prices exclude VAT. Pre-configured handsets include power adapters (unless specified as PoE network powered), desk stands, and lifetime manufacturer hardware warranties. Formal terms and contractual commitments are detailed on the generated agreement paperwork.
+            <div style="background-color: #F8FAFC; border: 1px dashed #CBD5E1; padding: 1rem 1.25rem; border-radius: 8px; font-size: 0.9rem; color: #475569; margin-top: 1rem;">
+                <strong>Commercial Notes:</strong> Quotation valid for 30 calendar days.
             </div>
             """,
             unsafe_allow_html=True,
