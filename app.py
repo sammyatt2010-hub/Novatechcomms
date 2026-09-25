@@ -96,7 +96,7 @@ st.markdown(
         color: #0F172A !important;
     }
 
-    /* 🚨 POPUP TOAST FIX: Clean White Box, High-Contrast Text & Visible Close Button 🚨 */
+    /* Popup Toast Fix */
     div[data-testid="stToast"] {
         background-color: #FFFFFF !important;
         border: 1.5px solid #0F5A73 !important;
@@ -194,13 +194,14 @@ st.markdown(
     div[data-testid="column"] {
         background-color: #FFFFFF !important;
         border-radius: 14px;
-        padding: 1.25rem !important;
+        padding: 1.15rem !important;
         border: 1px solid #E2E8F0;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         height: 100%;
+        margin-bottom: 1rem;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     div[data-testid="column"]:hover {
@@ -210,12 +211,12 @@ st.markdown(
 
     /* Card Badge */
     .card-badge {
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         font-weight: 700;
         color: #0F5A73 !important;
         background: #F0F9FF;
         border: 1px solid #BAE6FD;
-        padding: 3px 10px;
+        padding: 2px 8px;
         border-radius: 6px;
         display: inline-block;
         text-transform: uppercase;
@@ -372,43 +373,141 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 5. Rates & Product Catalogue
+# 5. Full Hardware & Accessories Catalogue (Fanvil + Yealink Additions)
 LICENCE_MONTHLY_RATE = 7.00
 ACTIVATION_FEE_PER_USER = 25.00
 CATALOGUE_FILE = "catalogue.json"
 
 _FALLBACK_PRODUCTS = [
+    # --- Fanvil Core Series ---
     {
         "id": "v67",
+        "category": "Fanvil Phones",
         "tag": "Flagship Touch",
-        "name": "Executive V67",
-        "desc": "7-inch adjustable touch screen with HD video and built-in Wi-Fi / Bluetooth",
+        "name": "Fanvil Executive V67",
+        "desc": "7-inch adjustable touch screen with HD video, built-in Wi-Fi & Bluetooth",
         "image": "Fanvil V67.webp",
         "price": 189.00,
     },
     {
         "id": "v66pro",
+        "category": "Fanvil Phones",
         "tag": "Executive Audio",
-        "name": "Premium V66 Pro",
+        "name": "Fanvil Premium V66 Pro",
         "desc": "Multi-line executive audio console with dual-screen colour display and Gigabit PoE",
         "image": "V66 Pro.webp",
         "price": 129.00,
     },
     {
         "id": "v62pro",
+        "category": "Fanvil Phones",
         "tag": "Standard Desk",
-        "name": "Essential V62 Pro",
+        "name": "Fanvil Essential V62 Pro",
         "desc": "High-durability office desktop phone with 6 SIP lines and crystal-clear HD audio",
         "image": "Fanvil V62 Pro.png",
         "price": 89.00,
     },
     {
         "id": "w620w",
+        "category": "Cordless DECT",
         "tag": "Rugged Cordless",
-        "name": "Linkvil Rugged",
+        "name": "Linkvil Rugged W620W",
         "desc": "IP67 waterproof & drop-proof wireless roaming handset with 15h talk time",
         "image": "Linkvil W620W Rugged.png",
         "price": 149.00,
+    },
+    # --- Yealink T7/T8 Prime Series ---
+    {
+        "id": "t73w",
+        "category": "Yealink Phones",
+        "tag": "Smart Business",
+        "name": "Yealink T73W",
+        "desc": "Entry-level executive IP phone with dual-band Wi-Fi and Bluetooth",
+        "image": "Yealink T73W.png",
+        "price": 78.00,
+    },
+    {
+        "id": "t74w",
+        "category": "Yealink Phones",
+        "tag": "Colour Executive",
+        "name": "Yealink T74W",
+        "desc": "High-performance business phone with colour screen and integrated wireless",
+        "image": "Yealink T74W.png",
+        "price": 111.00,
+    },
+    {
+        "id": "t85w",
+        "category": "Yealink Phones",
+        "tag": "Gigabit Console",
+        "name": "Yealink T85W",
+        "desc": "Advanced desktop console with colour display, Optima HD voice & USB expansion",
+        "image": "Yealink T85W.png",
+        "price": 115.00,
+    },
+    {
+        "id": "t87w",
+        "category": "Yealink Phones",
+        "tag": "Executive Touch",
+        "name": "Yealink T87W",
+        "desc": "Large touchscreen IP phone engineered for managers and knowledge workers",
+        "image": "Yealink T87W.png",
+        "price": 155.00,
+    },
+    {
+        "id": "t88w_pro",
+        "category": "Yealink Phones",
+        "tag": "Flagship Touch Pro",
+        "name": "Yealink T88W Pro",
+        "desc": "Premium smart media touch console with ultra-fast UI and full video support",
+        "image": "Yealink T88W Pro.png",
+        "price": 225.00,
+    },
+    # --- Yealink Cordless DECT & Roaming ---
+    {
+        "id": "w74p",
+        "category": "Cordless DECT",
+        "tag": "DECT Package",
+        "name": "Yealink W74P",
+        "desc": "High-performance DECT cordless phone system including base station & handset",
+        "image": "Yealink W74P.png",
+        "price": 87.00,
+    },
+    {
+        "id": "ax83h",
+        "category": "Cordless DECT",
+        "tag": "Commercial DECT",
+        "name": "Yealink AX83H",
+        "desc": "Slim, modern cordless business handset for active office environments",
+        "image": "Yealink AX83H.png",
+        "price": 75.00,
+    },
+    {
+        "id": "ax86r",
+        "category": "Cordless DECT",
+        "tag": "Rugged DECT",
+        "name": "Yealink AX86R",
+        "desc": "Heavy-duty shockproof and water-resistant rugged handset for site roaming",
+        "image": "Yealink AX86R.png",
+        "price": 113.00,
+    },
+    # --- Headsets & Accessories ---
+    {
+        "id": "uh36_mono",
+        "category": "Headsets & Accessories",
+        "tag": "UC Headset",
+        "name": "Yealink UH36 Mono Headset UC",
+        "desc": "Noise-cancelling professional USB/3.5mm wired mono headset with inline controller",
+        "image": "Yealink UH36 Mono Headset UC.png",
+        "price": 42.00,
+    },
+    {
+        "id": "psu_10w",
+        "category": "Headsets & Accessories",
+        "tag": "Power Supply",
+        "name": "Yealink 10W PSU",
+        "desc": "Official UK 10W mains power adapter for non-PoE network deployments",
+        "image": "Yealink 10W PSU.png",
+        "price": 11.00,
     },
 ]
 
@@ -422,9 +521,11 @@ def load_products():
             products = data.get("products", [])
             if products:
                 for p in products:
-                    if "tag" not in p:
+                    if "tag" not in p or "category" not in p:
                         match = next((fb for fb in _FALLBACK_PRODUCTS if fb["id"] == p.get("id")), None)
-                        p["tag"] = match["tag"] if match else "Handset"
+                        if match:
+                            p["tag"] = match["tag"]
+                            p["category"] = match.get("category", "Hardware")
                 return products
         except (json.JSONDecodeError, OSError):
             pass
@@ -782,7 +883,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     t_clause.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), c_warning_bg),
+                ("BACKGROUND", (0, 0), (-1, -1), c_warning_bg),
                 ("BOX", (0, 0), (-1, -1), 1.2, c_warning_border),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
@@ -923,65 +1024,82 @@ with tab_builder:
 
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Step 2: Handsets with Base64 Images
-    st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
+    # Step 2: Handsets with Category Filters & Symmetrical 4-Column Grid
+    st.markdown('<div class="section-headline"><span>Step 2:</span> Optional Handsets, Headsets &amp; Hardware (One-off Upfront)</div>', unsafe_allow_html=True)
 
-    hw_cols = st.columns(4, gap="medium")
-    for col, product in zip(hw_cols, PRODUCTS):
-        with col:
-            st.markdown(
-                f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <span class="card-badge">{product.get('tag', 'Handset')}</span>
-                    <span style="font-weight: 800; color: #0F5A73; font-size: 1.15rem;">£{product['price']:.2f}</span>
-                </div>
-                <div style="min-height: 55px;">
-                    <div style="font-weight: 800; color: #0F172A; font-size: 1rem;">{product["name"]}</div>
-                    <div style="color: #64748B; font-size: 0.78rem; line-height: 1.25; margin-top: 2px;">{product["desc"]}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    categories = ["All Hardware", "Yealink Phones", "Fanvil Phones", "Cordless DECT", "Headsets & Accessories"]
+    selected_category = st.radio(
+        "Filter Hardware Category",
+        categories,
+        horizontal=True,
+        label_visibility="collapsed",
+    )
 
-            # Rigid Base64 Image Stage
-            b64_uri = get_base64_image(product["image"])
-            if b64_uri:
+    if selected_category == "All Hardware":
+        filtered_products = PRODUCTS
+    else:
+        filtered_products = [p for p in PRODUCTS if p.get("category") == selected_category]
+
+    # Render products cleanly in 4-column rows
+    for row_start in range(0, len(filtered_products), 4):
+        row_slice = filtered_products[row_start : row_start + 4]
+        cols = st.columns(4, gap="medium")
+
+        for col, product in zip(cols, row_slice):
+            with col:
                 st.markdown(
                     f"""
-                    <div style="height: 155px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; padding: 6px;">
-                        <img src="{b64_uri}" style="max-height: 140px; max-width: 90%; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;" alt="{product['name']}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                        <span class="card-badge">{product.get('tag', 'Handset')}</span>
+                        <span style="font-weight: 800; color: #0F5A73; font-size: 1.15rem;">£{product['price']:.2f}</span>
+                    </div>
+                    <div style="min-height: 52px;">
+                        <div style="font-weight: 800; color: #0F172A; font-size: 0.95rem;">{product["name"]}</div>
+                        <div style="color: #64748B; font-size: 0.76rem; line-height: 1.2; margin-top: 2px;">{product["desc"]}</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
-            else:
-                st.markdown(
-                    f"""
-                    <div style="height: 155px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; color: #94A3B8; font-size: 0.85rem;">
-                        Image unavailable
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
 
-            current_qty = st.session_state.basket.get(product["id"], 0)
-            qty = st.number_input(
-                "Qty",
-                min_value=0,
-                max_value=100,
-                value=current_qty,
-                step=1,
-                key=f"qty_{product['id']}",
-                label_visibility="collapsed",
-            )
-
-            if st.button(f"Add to Quotation", key=f"btn_{product['id']}", use_container_width=True):
-                set_hardware_qty(product["id"], qty)
-                if qty > 0:
-                    st.toast(f"Updated {qty}x {product['name']} in quotation!", icon="✅")
+                # Rigid Base64 Image Stage
+                b64_uri = get_base64_image(product["image"])
+                if b64_uri:
+                    st.markdown(
+                        f"""
+                        <div style="height: 155px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; padding: 6px;">
+                            <img src="{b64_uri}" style="max-height: 140px; max-width: 90%; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;" alt="{product['name']}">
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
                 else:
-                    st.toast(f"Removed {product['name']} from quotation.", icon="ℹ️")
-                st.rerun()
+                    st.markdown(
+                        f"""
+                        <div style="height: 155px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #FAFAFA; border-radius: 10px; margin: 0.65rem 0; color: #94A3B8; font-size: 0.82rem;">
+                            Image loading ({product['image']})
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+                current_qty = st.session_state.basket.get(product["id"], 0)
+                qty = st.number_input(
+                    "Qty",
+                    min_value=0,
+                    max_value=100,
+                    value=current_qty,
+                    step=1,
+                    key=f"qty_{product['id']}",
+                    label_visibility="collapsed",
+                )
+
+                if st.button(f"Add to Quotation", key=f"btn_{product['id']}", use_container_width=True):
+                    set_hardware_qty(product["id"], qty)
+                    if qty > 0:
+                        st.toast(f"Updated {qty}x {product['name']} in quotation!", icon="✅")
+                    else:
+                        st.toast(f"Removed {product['name']} from quotation.", icon="ℹ️")
+                    st.rerun()
 
     # Hardware List Expander
     hw_list = basket_items()
@@ -1003,7 +1121,7 @@ with tab_builder:
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
     # Step 3: Blank Quote Form
-    st.markdown('<div class="section-headline"><span>Step 3:</span> Quotation Details & PDF Generation</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-headline"><span>Step 3:</span> Quotation Details &amp; PDF Generation</div>', unsafe_allow_html=True)
 
     with st.form(key="telephony_quote_form"):
         col_reseller, col_customer = st.columns(2, gap="large")
@@ -1162,7 +1280,7 @@ with tab_customer_view:
             st.metric(
                 label="Total One-Off Costs",
                 value=f"£{one_off_total:.2f}",
-                delta=f"Activation: £{activation:.2f} | Handsets: £{hw_total:.2f}",
+                delta=f"Activation: £{activation:.2f} | Hardware: £{hw_total:.2f}",
                 delta_color="off",
             )
         with kpi3:
@@ -1194,7 +1312,7 @@ with tab_customer_view:
 
         if h_items:
             for item in h_items:
-                table_lines.append(f"| **{item['name']}** ({item.get('tag', 'Handset')}) - {item['desc']} | {item['qty']} | £{item['price']:.2f} | £{item['line_total']:.2f} |")
+                table_lines.append(f"| **{item['name']}** ({item.get('tag', 'Item')}) - {item['desc']} | {item['qty']} | £{item['price']:.2f} | £{item['line_total']:.2f} |")
 
         table_lines.append(f"| **Total One-Off Upfront Costs** | | | **£{one_off_total:.2f}** |")
         st.markdown("\n".join(table_lines))
