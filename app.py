@@ -378,8 +378,8 @@ LICENCE_MONTHLY_RATE = 7.00
 ACTIVATION_FEE_PER_USER = 25.00
 CATALOGUE_FILE = "catalogue.json"
 
-# IDs of Yealink T-Series Desk Phones that require a 10W PSU
-YEALINK_T_SERIES_IDS = {"t73w", "t74w", "t85w", "t87w", "t88w_pro"}
+# Yealink T-Series Desk Phones that require a 10W PSU
+YEALINK_T_SERIES_IDS = ["t73w", "t74w", "t85w", "t87w", "t88w_pro"]
 PSU_ID = "psu_10w"
 
 _FALLBACK_PRODUCTS = [
@@ -545,47 +545,49 @@ if "basket" not in st.session_state:
 if "num_licences" not in st.session_state:
     st.session_state.num_licences = 0
 
-# Synchronize widget state keys into session state for all products
-for p in PRODUCTS:
-    widget_key = f"qty_input_{p['id']}"
-    if widget_key not in st.session_state:
-        st.session_state[widget_key] = st.session_state.basket.get(p["id"], 0)
+# Track baseline of Yealink T-Series phones to detect changes
+if "last_t_series_total" not in st.session_state:
+    st.session_state.last_t_series_total = 0
 
 
-def on_hardware_qty_change(product_id):
+def get_current_t_series_total():
+    """Returns the sum of all Yealink T-Series phones currently in basket."""
+    return sum(st.session_state.basket.get(pid, 0) for pid in YEALINK_T_SERIES_IDS)
+
+
+def on_qty_change(product_id):
     """
-    Direct callback triggered instantly when any quantity is adjusted.
-    Handles the automatic Yealink 10W PSU allocation when T-series phones are added.
+    Directly updates the basket from the number input widget and
+    automatically recalculates/adds the matching Yealink 10W PSUs.
     """
-    widget_key = f"qty_input_{product_id}"
-    new_qty = st.session_state.get(widget_key, 0)
-    old_qty = st.session_state.basket.get(product_id, 0)
-    qty_diff = new_qty - old_qty
-
-    # Update basket
-    if new_qty > 0:
-        st.session_state.basket[product_id] = new_qty
+    widget_val = st.session_state.get(f"input_{product_id}", 0)
+    if widget_val > 0:
+        st.session_state.basket[product_id] = widget_val
     else:
         st.session_state.basket.pop(product_id, None)
 
-    # Smart PSU Dependency for Yealink T-Series Desk Phones
-    if product_id in YEALINK_T_SERIES_IDS and qty_diff > 0:
-        current_psu = st.session_state.basket.get(PSU_ID, 0)
-        new_psu_qty = current_psu + qty_diff
-        st.session_state.basket[PSU_ID] = new_psu_qty
-        # Also sync PSU widget
-        st.session_state[f"qty_input_{PSU_ID}"] = new_psu_qty
-
-        prod_name = next((p["name"] for p in PRODUCTS if p["id"] == product_id), "phone")
-        st.toast(
-            f"⚡ Automatically added {qty_diff}x Yealink 10W PSU for {prod_name} (can be modified or removed if using PoE)",
-            icon="🔌",
-        )
+    # Check if a Yealink T-Series phone changed
+    if product_id in YEALINK_T_SERIES_IDS:
+        new_t_total = get_current_t_series_total()
+        diff = new_t_total - st.session_state.last_t_series_total
+        
+        # When phones are added, add the exact same number of PSUs
+        if diff > 0:
+            current_psus = st.session_state.basket.get(PSU_ID, 0)
+            new_psu_count = current_psus + diff
+            st.session_state.basket[PSU_ID] = new_psu_count
+            st.toast(
+                f"⚡ Auto-added {diff}x Yealink 10W PSU(s) for desk phone power (can be reduced if site uses PoE).",
+                icon="🔌"
+            )
+        
+        st.session_state.last_t_series_total = new_t_total
 
 
 def remove_from_basket(product_id):
     st.session_state.basket.pop(product_id, None)
-    st.session_state[f"qty_input_{product_id}"] = 0
+    if product_id in YEALINK_T_SERIES_IDS:
+        st.session_state.last_t_series_total = get_current_t_series_total()
 
 
 def basket_items():
@@ -918,7 +920,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     t_clause.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), c_warning_bg),
+                ("BACKGROUND", (0, 0), (-1, 0), c_warning_bg),
                 ("BOX", (0, 0), (-1, -1), 1.2, c_warning_border),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
@@ -1075,7 +1077,7 @@ with tab_builder:
     else:
         filtered_products = [p for p in PRODUCTS if p.get("category") == selected_category]
 
-    # Render products in a clean 4-column grid with instant on_change callbacks
+    # Render products in a clean 4-column grid
     for row_start in range(0, len(filtered_products), 4):
         row_slice = filtered_products[row_start : row_start + 4]
         cols = st.columns(4, gap="medium")
@@ -1117,22 +1119,25 @@ with tab_builder:
                         unsafe_allow_html=True,
                     )
 
-                # Instant Reactive Stepper (No double button clicks required!)
+                # Get true quantity from basket
+                curr_qty = st.session_state.basket.get(product["id"], 0)
+
+                # Reactive Stepper bound directly to on_qty_change
                 st.number_input(
                     label=f"Qty of {product['name']}",
                     min_value=0,
                     max_value=100,
+                    value=curr_qty,
                     step=1,
-                    key=f"qty_input_{product['id']}",
-                    on_change=on_hardware_qty_change,
+                    key=f"input_{product['id']}",
+                    on_change=on_qty_change,
                     args=(product["id"],),
                     label_visibility="collapsed",
                 )
 
-                current_in_basket = st.session_state.basket.get(product["id"], 0)
-                if current_in_basket > 0:
+                if curr_qty > 0:
                     st.markdown(
-                        f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.85rem; margin-top: 4px;'>In Quotation: <strong>{current_in_basket}</strong> (£{current_in_basket * product['price']:.2f})</div>",
+                        f"<div style='text-align: center; color: #0F5A73; font-weight: 700; font-size: 0.85rem; margin-top: 4px;'>In Quotation: <strong>{curr_qty}</strong> (£{curr_qty * product['price']:.2f})</div>",
                         unsafe_allow_html=True,
                     )
                 else:
