@@ -123,42 +123,6 @@ st.markdown(
         stroke: #0F172A !important;
     }
 
-    /* Novalink Brand Banner Card */
-    .novalink-banner {
-        background: linear-gradient(135deg, #0F5A73 0%, #164E63 100%);
-        border-radius: 16px;
-        padding: 2.2rem 1.75rem;
-        text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 8px 20px -4px rgba(15, 90, 115, 0.25);
-    }
-    .brand-tag {
-        display: inline-block;
-        background-color: rgba(255, 255, 255, 0.18);
-        color: #38BDF8 !important;
-        font-size: 0.8rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        padding: 5px 16px;
-        border-radius: 9999px;
-        margin-bottom: 0.6rem;
-        border: 1px solid rgba(56, 189, 248, 0.35);
-    }
-    .brand-title {
-        font-size: 2.6rem;
-        font-weight: 800;
-        color: #FFFFFF !important;
-        letter-spacing: -0.5px;
-        margin: 0 0 0.4rem 0;
-    }
-    .brand-subtitle {
-        font-size: 1.1rem;
-        color: #E2E8F0 !important;
-        margin: 0;
-        font-weight: 400;
-    }
-
     /* Tabs Styling */
     button[data-baseweb="tab"] {
         background-color: transparent !important;
@@ -299,23 +263,6 @@ st.markdown(
     div[data-testid="stFormSubmitButton"] > button span,
     div[data-testid="stDownloadButton"] > button span {
         color: #FFFFFF !important;
-    }
-
-    /* Preset User Quick-Select Pills */
-    .preset-btn > div > button {
-        background: #F1F5F9 !important;
-        color: #0F5A73 !important;
-        border: 1px solid #CBD5E1 !important;
-        font-weight: 700 !important;
-        box-shadow: none !important;
-        padding: 0.4rem 0.6rem !important;
-    }
-    .preset-btn > div > button p {
-        color: #0F5A73 !important;
-    }
-    .preset-btn > div > button:hover {
-        background: #E0F2FE !important;
-        border-color: #38BDF8 !important;
     }
 
     /* Form Container */
@@ -557,7 +504,7 @@ def load_products():
 
 PRODUCTS = load_products()
 
-# 6. Session State Setup (Defaults cleanly to 0)
+# 6. Session State Setup
 if "basket" not in st.session_state:
     st.session_state.basket = {}
 
@@ -995,7 +942,7 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
 tab_builder, tab_customer_view = st.tabs(["🛠️ Build Quotation", "💼 Customer Presentation View"])
 
 
-# --- TAB 1: BUILD QUOTATION (Proportional, centered & live-calculated) ---
+# --- TAB 1: BUILD QUOTATION (Centered & Framed matching Customer View) ---
 with tab_builder:
     st.markdown("<br>", unsafe_allow_html=True)
     b_col1, b_main, b_col3 = st.columns([1, 4, 1])
@@ -1033,7 +980,7 @@ with tab_builder:
         live_month_1_ex = live_mrc_ex + live_one_off_ex
         live_month_1_inc = live_month_1_ex * (1 + VAT_RATE)
 
-        # 3 Pillar Summary Cards: Always strictly mirrors current selection
+        # 3 Pillar Summary Cards
         kpi1, kpi2, kpi3 = st.columns(3)
         with kpi1:
             st.markdown(
@@ -1112,46 +1059,16 @@ with tab_builder:
 
         with lic_col2:
             st.markdown("**Number of Hosted Users**")
-            
-            # Direct two-way binding using key="num_licences"
-            def on_user_change():
-                pass  # Streamlit auto-updates st.session_state.num_licences
 
+            # Direct state number input without preset button conflicts
             st.number_input(
                 "Users",
                 min_value=0,
                 max_value=500,
                 step=1,
                 key="num_licences",
-                on_change=on_user_change,
                 label_visibility="collapsed",
             )
-
-            p1, p2, p3, p4 = st.columns(4)
-            with p1:
-                st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
-                if st.button("5 Users", key="preset_5"):
-                    st.session_state.num_licences = 5
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-            with p2:
-                st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
-                if st.button("10 Users", key="preset_10"):
-                    st.session_state.num_licences = 10
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-            with p3:
-                st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
-                if st.button("20 Users", key="preset_20"):
-                    st.session_state.num_licences = 20
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-            with p4:
-                st.markdown('<div class="preset-btn">', unsafe_allow_html=True)
-                if st.button("50 Users", key="preset_50"):
-                    st.session_state.num_licences = 50
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
 
             current_users = st.session_state.num_licences
             current_mrc = float(current_users) * LICENCE_MONTHLY_RATE
