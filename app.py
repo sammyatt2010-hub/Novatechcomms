@@ -967,7 +967,7 @@ with tab_builder:
     with left:
         # ===== 01 · Users =====
         with st.container(key="card-users"):
-            section_header("01", "Hosted user licences", "Ongoing monthly · 24-month minimum term")
+            section_header("01", "Hosted user licences", "Ongoing monthly · 36-month minimum term")
             u1, u2 = st.columns([1.35, 1], gap="medium")
             with u1:
                 feats = "".join(
@@ -1163,7 +1163,7 @@ with tab_builder:
                         st.button("✕", key=f"del_{item['id']}", on_click=remove_from_basket, args=(item["id"],),
                                   help=f"Remove {item['name']}")
             render_html(
-                f'<div class="nl-term">{icon("alert", 14)}<span>Licences are on a <b>24-month minimum term</b>.'
+                f'<div class="nl-term">{icon("alert", 14)}<span>Licences are on a <b>36-month minimum term</b>.'
                 ' Early termination charges apply. Quote valid for 30 days.</span></div>'
             )
             if "active_quote_pdf" in st.session_state and st.session_state.get("active_quote_sig") == quote_signature():
@@ -1209,7 +1209,7 @@ with tab_customer_view:
             )
 
         with st.container(key="card-cv-monthly"):
-            section_header("1", "Ongoing monthly costs", "Per user, per month · 24-month minimum term")
+            section_header("1", "Ongoing monthly costs", "Per user, per month · 36-month minimum term")
             if users > 0:
                 render_html(
                     '<table class="nl-table"><thead><tr><th>Service</th><th class="num">Users</th>'
