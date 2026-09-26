@@ -1251,7 +1251,7 @@ with tab_customer_view:
                 f'<tr class="grand"><td colspan="3">Total one-off (inc VAT)</td><td class="num">{money(one_off_ex + one_off_vat)}</td></tr>'
                 "</tbody></table>"
                 '<div class="nl-note"><b>Commercial notes:</b> Quotation valid for 30 calendar days.'
-                ' User licences are subject to a 24-month minimum term.</div>'
+                ' User licences are subject to a 36-month minimum term.</div>'
             )
 
 # ---------------- Hero (rendered last so the stepper reflects this run) ----------------
