@@ -892,8 +892,8 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     # Contract Termination Clause Box
     clause_text = (
         "<b>IMPORTANT CONTRACTUAL COMMITMENT &amp; TERMINATION TERMS:</b><br/>"
-        "All hosted user licences quoted herein are strictly subject to a <b>minimum 24-month agreement term</b>. "
-        "In the event of early termination or cancellation of services prior to the expiry of the initial 24-month term, "
+        "All hosted user licences quoted herein are strictly subject to a <b>minimum 36-month agreement term</b>. "
+        "In the event of early termination or cancellation of services prior to the expiry of the initial 36-month term, "
         "<b>early termination charges will be applicable and payable in full</b> for all outstanding monthly licence fees "
         "remaining across the unexpired portion of the agreement.<br/>"
         "<b>Commercial Notes:</b> Quotation valid for 30 calendar days."
