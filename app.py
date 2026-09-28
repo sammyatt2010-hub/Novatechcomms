@@ -578,7 +578,7 @@ def get_base64_image(image_path):
 # ==========================================
 # 5. HARDWARE & ACCESSORIES CATALOGUE
 # ==========================================
-LICENCE_MONTHLY_RATE = 7.00
+LICENCE_MONTHLY_RATE = 9.00
 ACTIVATION_FEE_PER_USER = 25.00
 VAT_RATE = 0.20
 CATALOGUE_FILE = "catalogue.json"
