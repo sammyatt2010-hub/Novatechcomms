@@ -7,16 +7,100 @@ import io
 import json
 import os
 
+import math
+
 import pandas as pd
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import HRFlowable, Image as RLImage, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 import streamlit as st
 
+# #####################################################################
+# #####################################################################
+#
+#   NOVALINK PRICE BOOK  -  YOUR WHOLESALE PRICES LIVE HERE
+#
+#   To change a price: edit the number, save, commit to GitHub.
+#   The app updates itself within a minute or so. Every screen, the
+#   customer quote PDF, the Novalink partner order and the profit
+#   page all read from these values - nothing else needs touching.
+#
+#   Rules:  - numbers only, no £ sign or commas   (e.g. 9.50  not £9.50)
+#           - keep the full stop for pence          (e.g. 4.00)
+#           - don't delete the commas at the ends of lines inside [ ] or { }
+#
+#   Existing PDFs already sent out are NOT changed - only new quotes.
+#   If a floor goes UP above a reseller's saved sell price, their sell
+#   price is automatically lifted to the new floor.
+#
+# #####################################################################
+
+# ---- Hosted user licences ------------------------------------------
+LICENCE_COST_PER_USER_MONTH = 9.00     # what the reseller pays you, per user per month (their minimum sell price)
+
+# ---- One-off charges -----------------------------------------------
+SETUP_COST_PER_USER = 4.00             # user setup & provisioning, per user (their minimum sell price)
+BASIC_BUILD_COST = 75.00               # "Basic system build" - flat fee (their minimum sell price)
+
+# ---- Advanced system deployment (fixed - resellers can't change it) --
+ADVANCED_DEPLOYMENT_TIERS = [
+    # (up to this many users, price)
+    (5, 250.00),                        # 1-5 users
+    (10, 500.00),                       # 6-10 users
+]
+ADVANCED_PRICE_PER_EXTRA_BAND = 750.00  # above the last tier: this price per band...
+ADVANCED_EXTRA_BAND_SIZE = 10           # ...of this many users (11-20 = £750, 21-30 = £1,500 ...)
+
+# ---- Hardware (price per unit) -------------------------------------
+# These override any other hardware price in the app. A product not
+# listed here keeps its existing price.
+HARDWARE_PRICES = {
+    "v67": 189.00,        # Fanvil Executive V67
+    "v66pro": 129.00,     # Fanvil Premium V66 Pro
+    "v62pro": 89.00,      # Fanvil Essential V62 Pro
+    "w620w": 149.00,      # Linkvil Rugged W620W
+    "t73w": 78.00,        # Yealink T73W
+    "t74w": 111.00,       # Yealink T74W
+    "t85w": 115.00,       # Yealink T85W
+    "t87w": 155.00,       # Yealink T87W
+    "t88w_pro": 225.00,   # Yealink T88W Pro
+    "w74p": 87.00,        # Yealink W74P
+    "ax83h": 75.00,       # Yealink AX83H
+    "ax86r": 113.00,      # Yealink AX86R
+    "uh36_mono": 42.00,   # Yealink UH36 Mono Headset UC
+    "psu_10w": 11.00,     # Yealink 10W PSU
+}
+
+# ---- Terms ---------------------------------------------------------
+VAT_RATE = 0.20                         # 0.20 = 20%
+CONTRACT_MONTHS = 36                    # minimum term shown on every quote & used for profit maths
+QUOTE_VALID_DAYS = 30                   # "Quotation valid for ... days"
+
+# #####################################################################
+#   END OF PRICE BOOK - you shouldn't need to edit anything below here
+# #####################################################################
+VAT_PCT = f"{VAT_RATE * 100:g}%"
+
+
 # ==========================================
-# 1. PAGE CONFIGURATION
+# 1. PAGE CONFIGURATION & BRAND
 # ==========================================
+# All files are found next to app.py, so the app works even when it lives in a
+# sub-folder of the repo (Streamlit Cloud runs from the repo root).
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def asset(path):
+    """Absolute path for a file stored alongside app.py (falls back to the repo root)."""
+    if not path or os.path.isabs(path):
+        return path
+    here = os.path.join(BASE_DIR, path)
+    return here if os.path.exists(here) or not os.path.exists(path) else path
+
+
+
 st.set_page_config(
     page_title="Novalink · Telephony Quotation",
     page_icon="📞",
@@ -26,6 +110,8 @@ st.set_page_config(
 
 APP_NAME = "Novalink"
 APP_TAGLINE = "Telephony quotation"
+POWERED_BY = "Novalink"
+QUOTE_PREFIX = "NL"
 
 # ==========================================
 # 2. DESIGN SYSTEM (shared with Prospect Engine)
@@ -291,6 +377,21 @@ hr { border-color: var(--border) !important; }
 .pe-login-head .pe-logo { width: 54px; height: 54px; margin: 0 auto 16px auto; border-radius: 16px; }
 .pe-login-head .t { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text); }
 .pe-login-head .s { color: var(--muted); font-size: 0.92rem; margin-top: 6px; }
+
+/* ---------- Brand helpers ---------- */
+.rit-brandrow { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.rit-logo { display: block; width: auto; }
+.rit-logo-text { font-weight: 800; font-style: italic; font-size: 1.6rem; letter-spacing: .02em; color: #D4D9DF; }
+.rit-logo-text span { color: var(--accent); }
+.rit-powered { display: inline-flex; align-items: center; gap: 8px; font-size: 0.74rem; font-weight: 600; color: var(--muted);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px 5px 5px; white-space: nowrap; }
+.rit-powered .pb { background: var(--grad); color: #0A0E1A; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  font-size: 0.66rem; padding: 3px 9px; border-radius: 999px; }
+.rit-powered b { color: var(--text); font-weight: 700; }
+.rit-powered .sep { display: none; }
+.rit-login-logo { display: flex; justify-content: center; margin-bottom: 18px; }
+.pe-login-head .s .rit-powered { margin: 6px 0 4px 0; }
+.pe-title span { padding-right: 4px; }
 </style>
 """
 
@@ -302,7 +403,8 @@ NOVALINK_CSS = """
 .block-container { max-width: 1440px; }
 
 .st-key-card-users, .st-key-card-hardware, .st-key-card-details, .st-key-card-summary,
-.st-key-card-cv-head, .st-key-card-cv-monthly, .st-key-card-cv-oneoff {
+.st-key-card-cv-head, .st-key-card-cv-monthly, .st-key-card-cv-oneoff, .st-key-card-deploy,
+.st-key-card-admin, .st-key-card-admin-login, .st-key-card-cv-setup, .st-key-card-admin-tariff, .st-key-card-admin-profit, .st-key-card-admin-order {
   background: linear-gradient(180deg, rgba(22, 31, 51, 0.85) 0%, rgba(17, 24, 39, 0.85) 100%);
   border: 1px solid var(--border) !important;
   border-radius: var(--radius);
@@ -430,6 +532,62 @@ NOVALINK_CSS = """
 .nl-table tr.grand td { border-top: 1px solid var(--border-strong); font-weight: 800; font-size: 1rem; padding-top: 12px; }
 .nl-table tr.grand td.num { background: var(--grad) !important; -webkit-background-clip: text !important; background-clip: text !important; color: transparent; }
 .nl-note { margin-top: 14px; font-size: 0.82rem; color: var(--muted); border: 1px dashed var(--border-strong); border-radius: 12px; padding: 12px 14px; }
+
+/* Deployment option cards */
+[class*="st-key-dep-"] { background: var(--surface); border: 1px solid var(--border) !important; border-radius: 14px;
+  padding: 16px 16px 14px 16px; height: 100%; transition: border-color .15s ease, box-shadow .15s ease; }
+[class*="st-key-dep-off-"]:hover { border-color: rgba(124,131,255,.45) !important; }
+[class*="st-key-dep-on-"] { border-color: rgba(124,131,255,.7) !important;
+  background: linear-gradient(135deg, rgba(124,131,255,.14), rgba(56,214,245,.05)) !important;
+  box-shadow: 0 0 0 1px rgba(124,131,255,.3), 0 16px 30px -20px rgba(124,131,255,.45); }
+.rit-dep-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.rit-dep-name { font-weight: 800; font-size: 1rem; color: var(--text); letter-spacing: -0.01em; }
+.rit-dep-price { font-weight: 800; font-size: 1.15rem; color: var(--text); white-space: nowrap; }
+[class*="st-key-dep-on-"] .rit-dep-price { color: var(--accent-2); }
+.rit-dep-desc { font-size: 0.8rem; color: var(--muted); margin-top: 6px; line-height: 1.4; min-height: 2.3em; }
+[class*="st-key-dep-on-"] .stButton > button:disabled { background: var(--grad) !important; color: #0A0E1A !important; opacity: 1 !important; border: none !important; }
+[class*="st-key-dep-on-"] .stButton > button:disabled p { color: #0A0E1A !important; font-weight: 700 !important; }
+
+/* Admin */
+.rit-admin-h { font-size: 0.7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-2);
+  margin: 14px 0 6px 0; padding-top: 12px; border-top: 1px solid var(--border); }
+.rit-floor { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--muted); background: var(--surface);
+  border: 1px dashed var(--border-strong); border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; }
+.rit-floor svg { color: var(--accent); flex-shrink: 0; }
+.rit-admin-note { font-size: 0.84rem; color: var(--muted); margin-bottom: 8px; }
+.st-key-card-admin-login { margin-top: 6vh; }
+.rit-admin-bar { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--muted); padding: 9px 0; }
+.rit-admin-bar svg { color: var(--accent); }
+.rit-deal { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; font-size: 0.9rem; color: var(--text); }
+.rit-deal span:last-child { color: var(--muted); font-size: 0.82rem; }
+.rit-pkpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+@media (max-width: 1100px) { .rit-pkpis { grid-template-columns: 1fr 1fr; } }
+.rit-hero-kpi { background: linear-gradient(135deg, rgba(52,211,153,.12), rgba(52,211,153,.03)) !important; border-color: rgba(52,211,153,.35) !important; }
+.rit-hero-kpi .v { color: var(--good) !important; }
+.rit-p.pos { color: var(--good); font-weight: 700; }
+.rit-p.zero { color: var(--faint); }
+.nl-table tr.grp td { font-size: 0.68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-2);
+  padding: 14px 12px 6px 12px; border-bottom: 1px solid var(--border); }
+
+/* Build sheet */
+.st-key-card-deploy [data-testid="stExpander"] { margin-top: 16px; }
+.st-key-card-deploy [data-testid="stExpander"] summary p { color: var(--text) !important; font-weight: 700 !important; }
+.st-key-card-deploy [data-testid="stExpander"] details { border-color: rgba(124,131,255,.35) !important; }
+.rit-bs-intro { font-size: 0.82rem; color: var(--muted); margin-bottom: 6px; line-height: 1.45; }
+.rit-bs-read { display: flex; align-items: flex-start; gap: 8px; font-size: 0.84rem; color: var(--text); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; margin: 2px 0 12px 0; }
+.rit-bs-read svg { color: var(--good); flex-shrink: 0; margin-top: 2px; }
+.rit-bs-status { margin: 14px 0 10px 0; padding-top: 12px; border-top: 1px solid var(--border); }
+.rit-bs-status .h { font-size: 0.72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-2); margin-bottom: 8px; }
+.rit-cv-setup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 900px) { .rit-cv-setup { grid-template-columns: 1fr; } }
+.rit-cv-setup .big { font-size: 1.05rem; font-weight: 800; color: var(--text); }
+.rit-cv-setup .sm { font-size: 0.8rem; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+.rit-cv-opt { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 0.86rem; }
+.rit-cv-opt .key { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-weight: 800;
+  background: var(--grad); color: #0A0E1A; flex-shrink: 0; }
+.rit-cv-opt .o { font-weight: 700; color: var(--text); min-width: 110px; }
+.rit-cv-opt .w { color: var(--muted); }
 </style>
 """
 
@@ -504,7 +662,7 @@ def money(v: float) -> str:
 
 
 def hero_html(active_step: int) -> str:
-    steps = ["Users", "Hardware", "Details", "PDF"]
+    steps = ["Users", "Deployment", "Hardware", "Details"]
     parts = []
     for i, label in enumerate(steps, start=1):
         state = "done" if i < active_step else "active" if i == active_step else ""
@@ -515,7 +673,7 @@ def hero_html(active_step: int) -> str:
         '<div class="pe-hero"><div>'
         f'<div class="pe-eyebrow"><span class="dot"></span>Hosted cloud telephony · {esc(datetime.now().strftime("%d %B %Y"))}</div>'
         '<div class="pe-title">Novalink Telephony <span>Quotation</span></div>'
-        '<div class="pe-sub">Combine cloud user licences with desk, cordless and headset hardware.'
+        '<div class="pe-sub">Combine cloud user licences, deployment and desk, cordless and headset hardware.'
         ' Totals update live, and the official PDF is one click away.</div>'
         f'</div><div class="pe-stepper">{stepper}</div></div>'
     )
@@ -565,6 +723,7 @@ if not check_password():
 # ==========================================
 @st.cache_data
 def get_base64_image(image_path):
+    image_path = asset(image_path)
     if image_path and os.path.exists(image_path):
         with open(image_path, "rb") as img_file:
             encoded = base64.b64encode(img_file.read()).decode("utf-8")
@@ -578,10 +737,7 @@ def get_base64_image(image_path):
 # ==========================================
 # 5. HARDWARE & ACCESSORIES CATALOGUE
 # ==========================================
-LICENCE_MONTHLY_RATE = 9.00
-ACTIVATION_FEE_PER_USER = 25.00
-VAT_RATE = 0.20
-CATALOGUE_FILE = "catalogue.json"
+CATALOGUE_FILE = asset("catalogue.json")
 
 _FALLBACK_PRODUCTS = [
     # --- Fanvil Core Series ---
@@ -619,6 +775,16 @@ _FALLBACK_PRODUCTS = [
 ]
 
 
+def _apply_price_book(products):
+    out = []
+    for p in products:
+        p = dict(p)
+        if p.get("id") in HARDWARE_PRICES:
+            p["price"] = float(HARDWARE_PRICES[p["id"]])
+        out.append(p)
+    return out
+
+
 @st.cache_data(ttl=60)
 def load_products():
     if os.path.isfile(CATALOGUE_FILE):
@@ -633,17 +799,73 @@ def load_products():
                         if match:
                             p["tag"] = match["tag"]
                             p["category"] = match.get("category", "Hardware")
-                return products
+                return _apply_price_book(products)
         except (json.JSONDecodeError, OSError):
             pass
-    return _FALLBACK_PRODUCTS
+    return _apply_price_book(_FALLBACK_PRODUCTS)
 
 
 PRODUCTS = load_products()
 
 # ==========================================
-# 6. SESSION STATE & PRICING
+# 6. RESELLER PRICING (floors set by Novalink, sell prices set per quote by the reseller)
 # ==========================================
+# Floors are Novalink's price to the reseller (from the PRICE BOOK). Resellers
+# can mark up from these per quote, never go below them.
+FLOOR_LICENCE_MONTHLY = float(LICENCE_COST_PER_USER_MONTH)   # set in the PRICE BOOK at the top
+FLOOR_SETUP_PER_USER = float(SETUP_COST_PER_USER)
+FLOOR_BASIC_DEPLOYMENT = float(BASIC_BUILD_COST)
+
+DEPLOY_BASIC = "basic"
+DEPLOY_ADVANCED = "advanced"
+DEPLOYMENT_LABELS = {
+    DEPLOY_BASIC: "Basic system build",
+    DEPLOY_ADVANCED: "Advanced system deployment",
+}
+DEPLOYMENT_DESCS = {
+    DEPLOY_BASIC: "Device activation & remote configuration · customer self-installation",
+    DEPLOY_ADVANCED: "Fully managed deployment · system design, build, installation & go-live support",
+}
+
+QUOTES_FILE = os.path.join(BASE_DIR, "quotes.csv")
+
+
+def advanced_deployment_price(users: int) -> float:
+    """Locked Novalink tariff (not editable by the reseller).
+    Tiers and band pricing are set in the PRICE BOOK at the top of this file."""
+    users = int(users or 0)
+    if users <= 0:
+        return 0.0
+    for cap, price in ADVANCED_DEPLOYMENT_TIERS:
+        if users <= cap:
+            return float(price)
+    last_cap = ADVANCED_DEPLOYMENT_TIERS[-1][0]
+    return float(ADVANCED_PRICE_PER_EXTRA_BAND) * math.ceil((users - last_cap) / ADVANCED_EXTRA_BAND_SIZE)
+
+
+# ---- Per-quote sell prices ------------------------------------------------
+# This app is shared by many resellers, so nothing is saved centrally: each
+# reseller sets their own sell prices for the quote they're building (in the
+# "Your sell prices" drop-down). They start at the Novalink price-book floor
+# and can only go up, never below.
+SELL_KEYS = {"sell_licence": FLOOR_LICENCE_MONTHLY, "sell_setup": FLOOR_SETUP_PER_USER,
+             "sell_basic": FLOOR_BASIC_DEPLOYMENT}
+for _k, _floor in SELL_KEYS.items():
+    try:
+        _v = float(st.session_state.get(_k, _floor))
+    except (TypeError, ValueError):
+        _v = _floor
+    st.session_state[_k] = round(max(_floor, _v), 2)
+
+LICENCE_MONTHLY_RATE = st.session_state.sell_licence
+SETUP_FEE_PER_USER = st.session_state.sell_setup
+BASIC_DEPLOYMENT_FEE = st.session_state.sell_basic
+
+# ==========================================
+# 7. SESSION STATE & QUOTE MATHS
+# ==========================================
+if "deployment" not in st.session_state:
+    st.session_state.deployment = DEPLOY_BASIC
 if "basket" not in st.session_state:
     st.session_state.basket = {}
 if "num_licences" not in st.session_state:
@@ -681,32 +903,249 @@ def total_monthly_licences():
     return float(users) * LICENCE_MONTHLY_RATE if users > 0 else 0.0
 
 
-def total_activation_fee():
-    users = st.session_state.get("num_licences", 0)
-    return float(users) * ACTIVATION_FEE_PER_USER if users > 0 else 0.0
+def total_setup_fee(users=None):
+    users = st.session_state.get("num_licences", 0) if users is None else users
+    return float(users) * SETUP_FEE_PER_USER if users > 0 else 0.0
+
+
+def deployment_fee(option=None, users=None):
+    """Deployment only applies when there are users on the system."""
+    users = st.session_state.get("num_licences", 0) if users is None else users
+    option = option or st.session_state.get("deployment", DEPLOY_BASIC)
+    if users <= 0:
+        return 0.0
+    if option == DEPLOY_ADVANCED:
+        return advanced_deployment_price(users)
+    return BASIC_DEPLOYMENT_FEE
+
+
+def total_one_off():
+    return total_setup_fee() + deployment_fee() + total_hardware_capex()
+
+
+def reseller_margin(users, option):
+    """Reseller's margin over the Novalink floors (admin eyes only)."""
+    if users <= 0:
+        return {"monthly": 0.0, "one_off": 0.0}
+    monthly = (LICENCE_MONTHLY_RATE - FLOOR_LICENCE_MONTHLY) * users
+    one_off = (SETUP_FEE_PER_USER - FLOOR_SETUP_PER_USER) * users
+    if option == DEPLOY_BASIC:
+        one_off += BASIC_DEPLOYMENT_FEE - FLOOR_BASIC_DEPLOYMENT
+    return {"monthly": monthly, "one_off": one_off}
+
+
+
+
+def novalink_deployment_cost(option, users):
+    """What Novalink charges the reseller for deployment (floor / locked tariff)."""
+    if users <= 0:
+        return 0.0
+    if option == DEPLOY_ADVANCED:
+        return advanced_deployment_price(users)
+    return FLOOR_BASIC_DEPLOYMENT
+
+
+def cost_sell_lines(users, option, hw_items):
+    """Every line on the deal with Novalink cost vs the reseller's sell price.
+    kind = 'monthly' or 'one_off'. Hardware is supplied at catalogue price (no uplift yet)."""
+    lines = []
+    if users > 0:
+        lines.append({"kind": "monthly", "name": "Hosted VoIP cloud user licence",
+                      "desc": "Per user, per month",
+                      "qty": users, "cost_unit": FLOOR_LICENCE_MONTHLY, "sell_unit": LICENCE_MONTHLY_RATE})
+        lines.append({"kind": "one_off", "name": "User setup & provisioning",
+                      "desc": "Per user, one-off",
+                      "qty": users, "cost_unit": FLOOR_SETUP_PER_USER, "sell_unit": SETUP_FEE_PER_USER})
+        lines.append({"kind": "one_off", "name": DEPLOYMENT_LABELS[option],
+                      "desc": DEPLOYMENT_DESCS[option],
+                      "qty": 1, "cost_unit": novalink_deployment_cost(option, users),
+                      "sell_unit": deployment_fee(option, users)})
+    for itm in hw_items:
+        lines.append({"kind": "one_off", "name": itm["name"], "desc": itm.get("desc", ""),
+                      "qty": itm["qty"], "cost_unit": itm["price"], "sell_unit": itm["price"]})
+    for ln in lines:
+        ln["cost_total"] = ln["cost_unit"] * ln["qty"]
+        ln["sell_total"] = ln["sell_unit"] * ln["qty"]
+        ln["profit"] = ln["sell_total"] - ln["cost_total"]
+    return lines
+
+
+def profit_summary(lines):
+    def tot(kind, field):
+        return sum(ln[field] for ln in lines if ln["kind"] == kind)
+    s = {
+        "monthly_cost": tot("monthly", "cost_total"), "monthly_sell": tot("monthly", "sell_total"),
+        "oneoff_cost": tot("one_off", "cost_total"), "oneoff_sell": tot("one_off", "sell_total"),
+    }
+    s["monthly_profit"] = s["monthly_sell"] - s["monthly_cost"]
+    s["annual_profit"] = s["monthly_profit"] * 12
+    s["contract_recurring_profit"] = s["monthly_profit"] * CONTRACT_MONTHS
+    s["oneoff_profit"] = s["oneoff_sell"] - s["oneoff_cost"]
+    s["contract_total_profit"] = s["contract_recurring_profit"] + s["oneoff_profit"]
+    s["contract_revenue"] = s["monthly_sell"] * CONTRACT_MONTHS + s["oneoff_sell"]
+    s["contract_cost"] = s["monthly_cost"] * CONTRACT_MONTHS + s["oneoff_cost"]
+    s["margin_pct"] = (s["contract_total_profit"] / s["contract_revenue"] * 100) if s["contract_revenue"] else 0.0
+    return s
 
 
 # ==========================================
-# 7. PDF QUOTATION (ReportLab, A4)
+# 8. PDF QUOTATION (ReportLab, A4)
 # ==========================================
-def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
+def generate_partner_order_pdf(order_meta, partner, end_customer, lines, build_sheet=None, n_users=0):
+    """Novalink -> reseller wholesale order. Shows ONLY Novalink prices - never the reseller's sell prices."""
+    partner_plain = str(partner.get("company", ""))
+    partner = {k: esc(v) for k, v in partner.items()}
+    end_customer = {k: esc(v) for k, v in end_customer.items()}
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=27, leftMargin=27, topMargin=30, bottomMargin=40,
+                            title=f"Novalink partner order {order_meta['ref']}", author=POWERED_BY)
+    styles = getSampleStyleSheet()
+    c_primary = colors.HexColor("#0F5A73")   # Novalink teal
+    c_slate = colors.HexColor("#475569")
+    c_dark = colors.HexColor("#0F172A")
+    c_bg = colors.HexColor("#F4F8FA")
+    c_border = colors.HexColor("#CBD5E1")
+
+    title_style = ParagraphStyle("T", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=19, leading=23, textColor=c_primary)
+    sub_style = ParagraphStyle("S", parent=styles["Normal"], fontName="Helvetica", fontSize=8.5, leading=12, textColor=c_slate)
+    meta_style = ParagraphStyle("M", parent=styles["Normal"], fontName="Helvetica", fontSize=8.5, leading=12, textColor=c_slate, alignment=2)
+    sec_head = ParagraphStyle("H", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=10.5, leading=14, textColor=c_primary)
+    th_style = ParagraphStyle("TH", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=8.5, leading=11, textColor=colors.white)
+    td_style = ParagraphStyle("TD", parent=styles["Normal"], fontName="Helvetica", fontSize=8.5, leading=11.5, textColor=c_dark)
+    td_bold = ParagraphStyle("TDB", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=8.5, leading=11.5, textColor=c_dark)
+    note_style = ParagraphStyle("N", parent=styles["Normal"], fontName="Helvetica", fontSize=7.8, leading=11, textColor=c_slate)
+
+    story = []
+    hdr = Table([[
+        [Paragraph("NOVALINK", title_style),
+         Paragraph("<b>Partner Order &amp; Wholesale Quotation</b><br/>Hosted cloud telephony · partner pricing", sub_style)],
+        Paragraph(
+            f"<b>Order Ref:</b> {order_meta['ref']}<br/>"
+            f"<b>Partner Quote Ref:</b> {order_meta['customer_ref']}<br/>"
+            f"<b>Date:</b> {order_meta['date']}<br/>"
+            f"<b>Term:</b> {CONTRACT_MONTHS} Months Minimum", meta_style),
+    ]], colWidths=[330, 210])
+    hdr.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LEFTPADDING", (0, 0), (0, 0), 0)]))
+    story += [hdr, Spacer(1, 8), HRFlowable(width="100%", thickness=1.5, color=c_primary, spaceAfter=10)]
+
+    addr = f"Site: {end_customer['delivery']}<br/>" if end_customer.get("delivery") and end_customer["delivery"] != "N/A" else ""
+    parties = Table([
+        [Paragraph("<b>SUPPLIER</b>", td_bold), Paragraph("<b>PARTNER (BILL TO)</b>", td_bold), Paragraph("<b>END CUSTOMER (PROVISION FOR)</b>", td_bold)],
+        [Paragraph(f"<b>{POWERED_BY}</b><br/>Hosted telephony platform", td_style),
+         Paragraph(f"<b>{partner['company']}</b><br/>{partner['name']}<br/>{partner['email']}<br/>{partner['phone']}", td_style),
+         Paragraph(f"<b>{end_customer['company']}</b><br/>Contact: {end_customer['name']}<br/>{addr}", td_style)],
+    ], colWidths=[150, 195, 195])
+    parties.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), c_bg), ("BOX", (0, 0), (-1, -1), 1, c_border),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, c_border), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5), ("LEFTPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story += [parties, Spacer(1, 10)]
+
+    def section(title, kind, per_month):
+        rows = [[Paragraph("Item / Description", th_style), Paragraph("Qty", th_style),
+                 Paragraph("Partner Price (Ex VAT)", th_style), Paragraph("Line Total (Ex VAT)", th_style)]]
+        sel = [ln for ln in lines if ln["kind"] == kind]
+        suffix = " / mo" if per_month else ""
+        for ln in sel:
+            rows.append([
+                Paragraph(f"<b>{esc(ln['name'])}</b><br/><font color='#64748B' size=7>{esc(ln['desc'])}</font>", td_style),
+                Paragraph(str(ln["qty"]), td_style),
+                Paragraph(f"£{ln['cost_unit']:,.2f}{suffix}", td_style),
+                Paragraph(f"£{ln['cost_total']:,.2f}{suffix}", td_bold),
+            ])
+        total = sum(ln["cost_total"] for ln in sel)
+        rows += [
+            [Paragraph("<b>Total (Ex VAT)</b>", td_bold), "", "", Paragraph(f"<b>£{total:,.2f}{suffix}</b>", td_bold)],
+            [Paragraph(f"VAT @ {VAT_PCT}", td_style), "", "", Paragraph(f"£{total * VAT_RATE:,.2f}{suffix}", td_style)],
+            [Paragraph("<b>Total (Inc VAT)</b>", td_bold), "", "", Paragraph(f"<b>£{total * (1 + VAT_RATE):,.2f}{suffix}</b>", td_bold)],
+        ]
+        t = Table(rows, colWidths=[290, 50, 100, 100])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), c_primary), ("BOX", (0, 0), (-1, -1), 1, c_border),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, c_border), ("BACKGROUND", (0, -3), (-1, -3), c_bg),
+            ("BACKGROUND", (0, -1), (-1, -1), c_bg),
+            ("TOPPADDING", (0, 0), (-1, -1), 4.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
+        ]))
+        story.extend([Paragraph(title, sec_head), Spacer(1, 4), t, Spacer(1, 10)])
+        return total
+
+    m_total = section("1. Monthly Recurring Charges (billed to partner)", "monthly", True)
+    o_total = section("2. One-Off Charges (billed to partner)", "one_off", False)
+
+    summ = Table([[Paragraph("<b>PARTNER COMMITMENT</b>", td_bold), Paragraph(
+        f"<b>Monthly:</b> £{m_total:,.2f} Ex VAT (£{m_total * (1 + VAT_RATE):,.2f} Inc VAT)<br/>"
+        f"<b>One-off:</b> £{o_total:,.2f} Ex VAT (£{o_total * (1 + VAT_RATE):,.2f} Inc VAT)<br/>"
+        f"<b>Month 1 payable to {POWERED_BY}:</b> <b>£{m_total + o_total:,.2f} Ex VAT "
+        f"(£{(m_total + o_total) * (1 + VAT_RATE):,.2f} Inc VAT)</b><br/>"
+        f"<b>{CONTRACT_MONTHS}-month contract value:</b> £{m_total * CONTRACT_MONTHS + o_total:,.2f} Ex VAT", td_style)]],
+        colWidths=[170, 370])
+    summ.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), c_bg), ("BOX", (0, 0), (-1, -1), 1.5, c_primary),
+                              ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                              ("LEFTPADDING", (0, 0), (-1, -1), 10), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
+    story += [summ, Spacer(1, 10)]
+
+    story.append(Paragraph(
+        "<b>Partner terms:</b> Prices shown are Novalink partner (wholesale) prices and are payable by the partner "
+        f"regardless of the price agreed with the end customer. Licences are subject to a {CONTRACT_MONTHS}-month minimum term. "
+        "Hardware is supplied at partner catalogue price. This document is an order summary, not a VAT invoice — "
+        "Novalink will issue a VAT invoice on acceptance.", note_style))
+    story.append(Spacer(1, 10))
+    sign = Table([
+        [Paragraph("<b>PARTNER AUTHORISATION:</b>", td_bold), Paragraph("<b>DATE:</b> ________________________", td_style)],
+        [Paragraph("Signature: _________________________________", td_style), Paragraph("Print Name: _____________________", td_style)],
+    ], colWidths=[330, 210])
+    sign.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 1, c_border), ("BACKGROUND", (0, 0), (-1, -1), c_bg),
+                              ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                              ("LEFTPADDING", (0, 0), (-1, -1), 8)]))
+    story.append(sign)
+
+    def footer(canvas, d):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(colors.HexColor("#8A9099"))
+        canvas.drawString(27, 18, f"{POWERED_BY} partner order · {partner_plain} · confidential")
+        canvas.drawRightString(A4[0] - 27, 18, f"Page {d.page}")
+        canvas.restoreState()
+
+    if build_sheet:
+        story.append(PageBreak())
+        story.append(Paragraph("Appendix · System build sheet", title_style))
+        story.append(Paragraph("Programming details captured by the partner with the customer.", sub_style))
+        story.append(HRFlowable(width="100%", thickness=1.5, color=c_primary, spaceAfter=8, spaceBefore=6))
+        story += build_sheet_flowables(build_sheet, build_sheet_parties(), c_primary, c_primary, n_users, sign_off=False)
+
+    doc.build(story, onFirstPage=footer, onLaterPages=footer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def _pdf_footer(canvas, doc):
+    canvas.saveState()
+    canvas.setFont("Helvetica", 7)
+    canvas.setFillColor(colors.HexColor("#8A9099"))
+    canvas.drawString(27, 18, f"{APP_NAME} · hosted cloud telephony")
+    canvas.drawRightString(A4[0] - 27, 18, f"Page {doc.page}")
+    canvas.setStrokeColor(colors.HexColor("#0F5A73"))
+    canvas.setLineWidth(2)
+    canvas.line(27, 28, 60, 28)
+    canvas.restoreState()
+
+
+def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items, deployment_option):
     # Escape typed text so names like "Smith & Co" or "<Ltd>" can't break the PDF layout
     reseller = {k: esc(v) for k, v in reseller.items()}
     customer = {k: esc(v) for k, v in customer.items()}
     hw_items = [{**i, "name": esc(i["name"]), "desc": esc(i["desc"])} for i in hw_items]
 
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,  # UK standard (was US Letter)
-        rightMargin=27,
-        leftMargin=27,
-        topMargin=32,
-        bottomMargin=32,
-    )
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=27, leftMargin=27, topMargin=28, bottomMargin=40,
+                            title=f"{APP_NAME} quotation {quote_meta['ref']}", author=APP_NAME)
     styles = getSampleStyleSheet()
 
-    c_primary = colors.HexColor("#0F5A73")
+    c_primary = colors.HexColor("#0F5A73")   # Novalink teal
+    c_head = c_primary
     c_slate = colors.HexColor("#475569")
     c_dark = colors.HexColor("#0F172A")
     c_bg = colors.HexColor("#F8FAFC")
@@ -716,7 +1155,8 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     c_warning_text = colors.HexColor("#92400E")
 
     title_style = ParagraphStyle("DocTitle", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=19, leading=23, textColor=c_primary)
-    meta_style = ParagraphStyle("MetaText", parent=styles["Normal"], fontName="Helvetica", fontSize=8.5, leading=12, textColor=c_slate)
+    sub_style = ParagraphStyle("DocSub", parent=styles["Normal"], fontName="Helvetica", fontSize=8, leading=11, textColor=c_slate)
+    meta_style = ParagraphStyle("MetaText", parent=styles["Normal"], fontName="Helvetica", fontSize=8.5, leading=12, textColor=c_slate, alignment=2)
     sec_head = ParagraphStyle("SectionHeader", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=10.5, leading=14, textColor=c_primary)
     th_style = ParagraphStyle("TH", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=8.5, leading=11, textColor=colors.white)
     td_style = ParagraphStyle("TD", parent=styles["Normal"], fontName="Helvetica", fontSize=8.5, leading=11.5, textColor=c_dark)
@@ -724,20 +1164,23 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
 
     story = []
 
-    # Title & Metadata
+    # Header: title | metadata
+    left_cell = [Paragraph("<b>Novalink Telephony Quotation</b>", title_style),
+                 Paragraph("Hosted cloud telephony", sub_style)]
     hdr = Table(
         [[
-            Paragraph("<b>Novalink Telephony Quotation</b>", title_style),
+            left_cell,
             Paragraph(
                 f"<b>Reference:</b> {quote_meta['ref']}<br/>"
                 f"<b>Date:</b> {quote_meta['date']}<br/>"
-                f"<b>Contract Term:</b> <b>24 Months Minimum</b>",
+                f"<b>Contract Term:</b> <b>{CONTRACT_MONTHS} Months Minimum</b><br/>"
+                f"<b>Valid for:</b> {QUOTE_VALID_DAYS} days",
                 meta_style,
             ),
         ]],
         colWidths=[350, 190],
     )
-    hdr.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (1, 0), (1, 0), "RIGHT")]))
+    hdr.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LEFTPADDING", (0, 0), (0, 0), 0)]))
     story.append(hdr)
     story.append(Spacer(1, 8))
     story.append(HRFlowable(width="100%", thickness=1.5, color=c_primary, spaceAfter=10, spaceBefore=0))
@@ -798,16 +1241,16 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
                 td_style,
             ),
             Paragraph(str(num_users), td_style),
-            Paragraph(f"£{LICENCE_MONTHLY_RATE:.2f} / mo", td_style),
-            Paragraph(f"£{mrc_total:.2f} / mo", td_bold),
+            Paragraph(f"£{LICENCE_MONTHLY_RATE:,.2f} / mo", td_style),
+            Paragraph(f"£{mrc_total:,.2f} / mo", td_bold),
         ],
-        [Paragraph("<b>Total Ongoing Monthly Costs (Ex VAT)</b>", td_bold), "", "", Paragraph(f"<b>£{mrc_total:.2f} / mo</b>", td_bold)],
-        [Paragraph("VAT @ 20%", td_style), "", "", Paragraph(f"£{mrc_vat:.2f} / mo", td_style)],
-        [Paragraph("<b>Total Ongoing Monthly Costs (Inc VAT)</b>", td_bold), "", "", Paragraph(f"<b>£{mrc_inc_vat:.2f} / mo</b>", td_bold)],
+        [Paragraph("<b>Total Ongoing Monthly Costs (Ex VAT)</b>", td_bold), "", "", Paragraph(f"<b>£{mrc_total:,.2f} / mo</b>", td_bold)],
+        [Paragraph(f"VAT @ {VAT_PCT}", td_style), "", "", Paragraph(f"£{mrc_vat:,.2f} / mo", td_style)],
+        [Paragraph("<b>Total Ongoing Monthly Costs (Inc VAT)</b>", td_bold), "", "", Paragraph(f"<b>£{mrc_inc_vat:,.2f} / mo</b>", td_bold)],
     ]
     t_mrc = Table(mrc_data, colWidths=[290, 50, 100, 100])
     t_mrc.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), c_primary),
+        ("BACKGROUND", (0, 0), (-1, 0), c_head),
         ("BOX", (0, 0), (-1, -1), 1, c_border),
         ("INNERGRID", (0, 0), (-1, -1), 0.5, c_border),
         ("BACKGROUND", (0, 2), (-1, 2), c_bg),
@@ -822,40 +1265,52 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     story.append(Paragraph("2. One-Off Upfront Costs", sec_head))
     story.append(Spacer(1, 4))
 
-    activation_total = num_users * ACTIVATION_FEE_PER_USER if num_users > 0 else 0.0
+    setup_total = num_users * SETUP_FEE_PER_USER if num_users > 0 else 0.0
+    deploy_total = deployment_fee(deployment_option, num_users)
     hw_total = sum(i["line_total"] for i in hw_items)
-    one_off_grand_total = activation_total + hw_total
+    one_off_grand_total = setup_total + deploy_total + hw_total
     one_off_vat = one_off_grand_total * VAT_RATE
     one_off_inc_vat = one_off_grand_total + one_off_vat
 
     upfront_data = [
         [Paragraph("Item / Description", th_style), Paragraph("Qty", th_style),
          Paragraph("Unit Price (Ex VAT)", th_style), Paragraph("Line Total (Ex VAT)", th_style)],
-        [
+    ]
+    if num_users > 0:
+        upfront_data.append([
             Paragraph(
-                "<b>Initial User Setup &amp; Activation</b><br/>"
-                "<font color='#64748B' size=7>System configuration, extension setup, user provisioning &amp; portal deployment.</font>",
+                "<b>User Setup &amp; Provisioning</b><br/>"
+                "<font color='#64748B' size=7>Extension setup, user provisioning &amp; licence activation.</font>",
                 td_style,
             ),
             Paragraph(str(num_users), td_style),
-            Paragraph(f"£{ACTIVATION_FEE_PER_USER:.2f}", td_style),
-            Paragraph(f"£{activation_total:.2f}", td_bold),
-        ],
-    ]
+            Paragraph(f"£{SETUP_FEE_PER_USER:,.2f}", td_style),
+            Paragraph(f"£{setup_total:,.2f}", td_bold),
+        ])
+        upfront_data.append([
+            Paragraph(
+                f"<b>{DEPLOYMENT_LABELS[deployment_option]}</b><br/>"
+                f"<font color='#64748B' size=7>{esc(DEPLOYMENT_DESCS[deployment_option])}.</font>",
+                td_style,
+            ),
+            Paragraph("1", td_style),
+            Paragraph(f"£{deploy_total:,.2f}", td_style),
+            Paragraph(f"£{deploy_total:,.2f}", td_bold),
+        ])
     for itm in hw_items:
         upfront_data.append([
             Paragraph(f"<b>{itm['name']}</b><br/><font color='#64748B' size=7>{itm['desc']}</font>", td_style),
             Paragraph(str(itm["qty"]), td_style),
-            Paragraph(f"£{itm['price']:.2f}", td_style),
-            Paragraph(f"£{itm['line_total']:.2f}", td_bold),
+            Paragraph(f"£{itm['price']:,.2f}", td_style),
+            Paragraph(f"£{itm['line_total']:,.2f}", td_bold),
         ])
-    upfront_data.append([Paragraph("<b>Total One-Off Upfront Costs (Ex VAT)</b>", td_bold), "", "", Paragraph(f"<b>£{one_off_grand_total:.2f}</b>", td_bold)])
-    upfront_data.append([Paragraph("VAT @ 20%", td_style), "", "", Paragraph(f"£{one_off_vat:.2f}", td_style)])
-    upfront_data.append([Paragraph("<b>Total One-Off Upfront Costs (Inc VAT)</b>", td_bold), "", "", Paragraph(f"<b>£{one_off_inc_vat:.2f}</b>", td_bold)])
+    upfront_data.append([Paragraph("<b>Total One-Off Upfront Costs (Ex VAT)</b>", td_bold), "", "", Paragraph(f"<b>£{one_off_grand_total:,.2f}</b>", td_bold)])
+    upfront_data.append([Paragraph(f"VAT @ {VAT_PCT}", td_style), "", "", Paragraph(f"£{one_off_vat:,.2f}", td_style)])
+    upfront_data.append([Paragraph("<b>Total One-Off Upfront Costs (Inc VAT)</b>", td_bold), "", "", Paragraph(f"<b>£{one_off_inc_vat:,.2f}</b>", td_bold)])
 
     t_upfront = Table(upfront_data, colWidths=[290, 50, 100, 100])
     t_upfront.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), c_primary),
+        ("BACKGROUND", (0, 0), (-1, 0), c_head),
         ("BOX", (0, 0), (-1, -1), 1, c_border),
         ("INNERGRID", (0, 0), (-1, -1), 0.5, c_border),
         ("BACKGROUND", (0, -3), (-1, -3), c_bg),
@@ -872,9 +1327,9 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     summary_data = [[
         Paragraph("<b>FINANCIAL SUMMARY</b>", td_bold),
         Paragraph(
-            f"<b>Ongoing Monthly Costs:</b> £{mrc_total:.2f} Ex VAT (£{mrc_inc_vat:.2f} Inc VAT / mo)<br/>"
-            f"<b>Total One-Off Upfront Costs:</b> £{one_off_grand_total:.2f} Ex VAT (£{one_off_inc_vat:.2f} Inc VAT)<br/>"
-            f"<b>Total Month 1 Investment:</b> <b>£{first_month_ex:.2f} Ex VAT (£{first_month_inc:.2f} Inc VAT)</b>",
+            f"<b>Ongoing Monthly Costs:</b> £{mrc_total:,.2f} Ex VAT (£{mrc_inc_vat:,.2f} Inc VAT / mo)<br/>"
+            f"<b>Total One-Off Upfront Costs:</b> £{one_off_grand_total:,.2f} Ex VAT (£{one_off_inc_vat:,.2f} Inc VAT)<br/>"
+            f"<b>Total Month 1 Investment:</b> <b>£{first_month_ex:,.2f} Ex VAT (£{first_month_inc:,.2f} Inc VAT)</b>",
             td_style,
         ),
     ]]
@@ -892,11 +1347,11 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     # Contract Termination Clause Box
     clause_text = (
         "<b>IMPORTANT CONTRACTUAL COMMITMENT &amp; TERMINATION TERMS:</b><br/>"
-        "All hosted user licences quoted herein are strictly subject to a <b>minimum 36-month agreement term</b>. "
-        "In the event of early termination or cancellation of services prior to the expiry of the initial 36-month term, "
+        f"All hosted user licences quoted herein are strictly subject to a <b>minimum {CONTRACT_MONTHS}-month agreement term</b>. "
+        f"In the event of early termination or cancellation of services prior to the expiry of the initial {CONTRACT_MONTHS}-month term, "
         "<b>early termination charges will be applicable and payable in full</b> for all outstanding monthly licence fees "
         "remaining across the unexpired portion of the agreement.<br/>"
-        "<b>Commercial Notes:</b> Quotation valid for 30 calendar days."
+        f"<b>Commercial Notes:</b> Quotation valid for {QUOTE_VALID_DAYS} calendar days."
     )
     clause_para = Paragraph(clause_text, ParagraphStyle(
         "ContractClause", parent=styles["Normal"], fontName="Helvetica", fontSize=7.8, leading=11, textColor=c_warning_text))
@@ -927,13 +1382,463 @@ def generate_quotation_pdf(quote_meta, reseller, customer, num_users, hw_items):
     ]))
     story.append(t_sign)
 
-    doc.build(story)
+    doc.build(story, onFirstPage=_pdf_footer, onLaterPages=_pdf_footer)
     buffer.seek(0)
     return buffer.getvalue()
 
 
 # ==========================================
-# 8. PAGE
+# 8b. SYSTEM SETUP ("BUILD SHEET") - programming details for the install team
+# ==========================================
+import re as _re
+
+BS_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+BS_TIMES = [f"{h:02d}:{m:02d}" for h in range(24) for m in (0, 15, 30, 45)] + ["23:59"]
+BS_HOURS_PRESETS = {
+    "Mon–Fri 09:00–17:00": (5, "09:00", "17:00"),
+    "Mon–Fri 08:30–17:30": (5, "08:30", "17:30"),
+    "Mon–Fri 08:00–18:00": (5, "08:00", "18:00"),
+    "Mon–Sat 09:00–17:00": (6, "09:00", "17:00"),
+    "Open 24/7": (7, "00:00", "23:59"),
+    "Custom hours": None,
+}
+BS_OOH_ACTIONS = [
+    "Closed message, then voicemail",
+    "Closed message, then hang up",
+    "Divert to a mobile / other number",
+    "Ring as normal (no out-of-hours)",
+]
+BS_AUDIO = ["Text-to-speech from the scripts below", "Customer will supply audio files", "Professional voiceover (quote separately)"]
+BS_RING_STYLES = ["All at once", "In order (hunt)", "Longest idle first", "Round robin"]
+BS_NO_ANSWER = ["Voicemail", "Overflow to another group", "Overflow to a mobile / number", "Keep queuing", "Back to main menu"]
+BS_NO_INPUT = ["Repeat menu once, then go to option 1", "Repeat menu once, then voicemail", "Go straight to option 1", "Hang up"]
+BS_NUMBERS = ["Port existing number(s)", "New number(s)", "Port existing + add new"]
+BS_CLI = ["Company main number", "Each user's direct dial", "Withheld"]
+BS_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+BS_SOFTPHONE = "Softphone / app only"
+_EMAIL_RE = _re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+BS_DEFAULT_WELCOME = "Thank you for calling [Company name]."
+BS_DEFAULT_GDPR = ("Please note that calls may be recorded for training and quality purposes. "
+                   "To find out how we use your personal data, please see the privacy notice on our website.")
+BS_DEFAULT_CLOSED = ("Thank you for calling. Our office is currently closed. Please leave a message after the tone "
+                     "and we'll call you back on the next working day.")
+
+
+def _bs_init():
+    ss = st.session_state
+    defaults = {
+        "bs_hours_preset": "Mon–Fri 09:00–17:00", "bs_bank_hols": True,
+        "bs_ooh_action": BS_OOH_ACTIONS[0], "bs_ooh_divert": "", "bs_closed_text": BS_DEFAULT_CLOSED,
+        "bs_welcome_on": True, "bs_welcome_text": BS_DEFAULT_WELCOME,
+        "bs_gdpr_on": True, "bs_gdpr_text": BS_DEFAULT_GDPR, "bs_audio": BS_AUDIO[0],
+        "bs_ivr_on": True, "bs_no_input": BS_NO_INPUT[0],
+        "bs_vm_email": "", "bs_numbers": BS_NUMBERS[0], "bs_main_number": "", "bs_provider": "",
+        "bs_port_postcode": "", "bs_cli": BS_CLI[0], "bs_notes": "", "bs_users_ver": 0,
+    }
+    for k, v in defaults.items():
+        if k not in ss:
+            ss[k] = v
+    if "bs_hours_base" not in ss:
+        ss.bs_hours_base = pd.DataFrame([
+            {"Day": d, "Open": i < 5, "From": "09:00", "To": "17:00"} for i, d in enumerate(BS_DAYS)])
+    if "bs_flow_base" not in ss:
+        ss.bs_flow_base = pd.DataFrame([
+            {"Key": "1", "Option": "Sales", "Who rings": "", "Ring style": "All at once", "Ring (secs)": 20,
+             "If no answer": "Voicemail", "Then / voicemail email": ""},
+            {"Key": "2", "Option": "Accounts", "Who rings": "", "Ring style": "All at once", "Ring (secs)": 20,
+             "If no answer": "Voicemail", "Then / voicemail email": ""},
+        ])
+    if "bs_direct_base" not in ss:
+        ss.bs_direct_base = pd.DataFrame([
+            {"Who rings": "", "Ring style": "All at once", "Ring (secs)": 20,
+             "If no answer": "Voicemail", "Then / voicemail email": ""}])
+
+
+def _bs_user_rows(n, existing):
+    rows = existing.to_dict("records") if existing is not None else []
+    rows = rows[:n]
+    for i in range(len(rows), n):
+        rows.append({"First name": "", "Last name": "", "Email": "", "Extension": str(201 + i),
+                     "Device": BS_SOFTPHONE, "Mobile app": True, "Voicemail to email": True, "Direct dial (DDI)": ""})
+    return pd.DataFrame(rows, columns=["First name", "Last name", "Email", "Extension", "Device",
+                                       "Mobile app", "Voicemail to email", "Direct dial (DDI)"])
+
+
+def _clean_df(df):
+    if df is None:
+        return []
+    out = []
+    for r in df.to_dict("records"):
+        out.append({k: ("" if (v is None or (isinstance(v, float) and math.isnan(v))) else v) for k, v in r.items()})
+    return out
+
+
+def bs_hours_rows():
+    ss = st.session_state
+    preset = BS_HOURS_PRESETS.get(ss.get("bs_hours_preset"))
+    if preset:
+        n_days, a, b = preset
+        return [{"Day": d, "Open": i < n_days, "From": a, "To": b} for i, d in enumerate(BS_DAYS)]
+    return _clean_df(ss.get("bs_hours_latest", ss.get("bs_hours_base")))
+
+
+def bs_hours_summary(rows):
+    open_rows = [r for r in rows if r.get("Open")]
+    if not open_rows:
+        return "Closed all week"
+    if len(open_rows) == 7 and all(r["From"] == "00:00" and r["To"] == "23:59" for r in open_rows):
+        return "Open 24/7"
+    groups = []
+    for r in open_rows:
+        t = f'{r["From"]}–{r["To"]}'
+        if groups and groups[-1][2] == t and BS_DAYS.index(r["Day"]) == BS_DAYS.index(groups[-1][1]) + 1:
+            groups[-1][1] = r["Day"]
+        else:
+            groups.append([r["Day"], r["Day"], t])
+    return ", ".join((f"{a[:3]}–{b[:3]}" if a != b else a[:3]) + f" {t}" for a, b, t in groups)
+
+
+def bs_menu_script(flow):
+    parts = [f'For {r["Option"]}, press {r["Key"]}.' for r in flow if r.get("Option") and r.get("Key")]
+    return " ".join(parts)
+
+
+def build_sheet_data():
+    ss = st.session_state
+    ivr = bool(ss.get("bs_ivr_on"))
+    flow_df = ss.get("bs_flow_latest", ss.get("bs_flow_base")) if ivr else ss.get("bs_direct_latest", ss.get("bs_direct_base"))
+    flow = [r for r in _clean_df(flow_df) if any(str(v).strip() for k, v in r.items() if k not in ("Ring (secs)",))]
+    if ivr:
+        flow = sorted(flow, key=lambda r: BS_KEYS.index(str(r.get("Key"))) if str(r.get("Key")) in BS_KEYS else 99)
+    users = _clean_df(ss.get("bs_users_latest"))
+    return {
+        "hours_preset": ss.get("bs_hours_preset"), "hours": bs_hours_rows(), "bank_hols": ss.get("bs_bank_hols"),
+        "ooh_action": ss.get("bs_ooh_action"), "ooh_divert": ss.get("bs_ooh_divert", ""),
+        "closed_text": ss.get("bs_closed_text", ""),
+        "welcome_on": ss.get("bs_welcome_on"), "welcome_text": ss.get("bs_welcome_text", ""),
+        "gdpr_on": ss.get("bs_gdpr_on"), "gdpr_text": ss.get("bs_gdpr_text", ""), "audio": ss.get("bs_audio"),
+        "ivr_on": ivr, "no_input": ss.get("bs_no_input"), "flow": flow, "menu_script": bs_menu_script(flow) if ivr else "",
+        "users": users, "vm_email": ss.get("bs_vm_email", ""),
+        "numbers": ss.get("bs_numbers"), "main_number": ss.get("bs_main_number", ""),
+        "provider": ss.get("bs_provider", ""), "port_postcode": ss.get("bs_port_postcode", ""),
+        "cli": ss.get("bs_cli"), "notes": ss.get("bs_notes", ""),
+    }
+
+
+def build_sheet_checks(bs, n_users):
+    """(label, ok) list the install team needs before they can build."""
+    porting = bs["numbers"] != "New number(s)"
+    uses_vm = any("Voicemail" in str(r.get("If no answer", "")) for r in bs["flow"]) or "voicemail" in (bs["ooh_action"] or "")
+    users = bs["users"]
+    checks = [
+        ("Opening hours", any(r.get("Open") for r in bs["hours"])),
+        ("Welcome message", (not bs["welcome_on"]) or (bs["welcome_text"].strip() and "[Company name]" not in bs["welcome_text"])),
+        ("Call routing: who answers each option", bool(bs["flow"]) and all(str(r.get("Who rings", "")).strip() for r in bs["flow"])
+         and (not bs["ivr_on"] or all(str(r.get("Option", "")).strip() for r in bs["flow"]))),
+        (f"User names ({n_users})", n_users > 0 and len(users) == n_users
+         and all(str(u.get("First name", "")).strip() for u in users)),
+        ("User email addresses", n_users > 0 and len(users) == n_users
+         and all(_EMAIL_RE.match(str(u.get("Email", "")).strip()) for u in users)),
+        ("Number details" + (" (porting)" if porting else ""), (not porting) or (bool(bs["main_number"].strip()) and bool(bs["provider"].strip()))),
+    ]
+    if bs["ooh_action"] == BS_OOH_ACTIONS[2]:
+        checks.insert(1, ("Out-of-hours divert number", bool(bs["ooh_divert"].strip())))
+    if uses_vm:
+        checks.insert(-1, ("Main voicemail email", bool(_EMAIL_RE.match(bs["vm_email"].strip()))))
+    return checks
+
+
+def render_build_sheet_form():
+    """The 'System setup details' drop-down inside the Deployment card."""
+    _bs_init()
+    ss = st.session_state
+    n_users = int(ss.get("num_licences", 0))
+    with st.expander("System setup details  ·  IVR, opening hours, call routing, users & voicemail", expanded=False):
+        render_html('<div class="rit-bs-intro">Fill this in with your customer. It becomes the <b>build sheet</b> our '
+                    'engineers programme the system from. Anything left blank can be finished later.</div>')
+        t_hours, t_calls, t_users, t_vm = st.tabs(["1 · Hours", "2 · Greeting & menu", "3 · Users", "4 · Voicemail & numbers"])
+
+        # ---- 1. Hours ----
+        with t_hours:
+            h1, h2 = st.columns([1.4, 1])
+            with h1:
+                st.selectbox("Opening hours", list(BS_HOURS_PRESETS.keys()), key="bs_hours_preset")
+            with h2:
+                st.checkbox("Closed on UK bank holidays", key="bs_bank_hols")
+            if ss.bs_hours_preset == "Custom hours":
+                ss.bs_hours_latest = st.data_editor(
+                    ss.bs_hours_base, key="bs_hours_ed", hide_index=True, num_rows="fixed", **FULL_WIDTH,
+                    column_config={
+                        "Day": st.column_config.TextColumn(disabled=True),
+                        "Open": st.column_config.CheckboxColumn(),
+                        "From": st.column_config.SelectboxColumn(options=BS_TIMES, required=True),
+                        "To": st.column_config.SelectboxColumn(options=BS_TIMES, required=True),
+                    })
+            else:
+                render_html(f'<div class="rit-bs-read">{icon("check", 13, 3)}{esc(bs_hours_summary(bs_hours_rows()))}</div>')
+            o1, o2 = st.columns([1.4, 1])
+            with o1:
+                st.selectbox("Out of hours, calls should…", BS_OOH_ACTIONS, key="bs_ooh_action")
+            with o2:
+                if ss.bs_ooh_action == BS_OOH_ACTIONS[2]:
+                    st.text_input("Divert to number", key="bs_ooh_divert", placeholder="e.g. 07700 900123")
+            if ss.bs_ooh_action in BS_OOH_ACTIONS[:2]:
+                st.text_area("Closed message", key="bs_closed_text", height=80)
+
+        # ---- 2. Greeting & menu ----
+        with t_calls:
+            g1, g2 = st.columns(2)
+            with g1:
+                st.checkbox("Play a welcome message", key="bs_welcome_on")
+            with g2:
+                st.checkbox("Play a call-recording / GDPR notice", key="bs_gdpr_on")
+            if ss.bs_welcome_on:
+                st.text_input("Welcome message", key="bs_welcome_text")
+            if ss.bs_gdpr_on:
+                st.text_area("Recording / GDPR notice", key="bs_gdpr_text", height=72)
+            st.selectbox("How are the messages recorded?", BS_AUDIO, key="bs_audio")
+            render_html('<div class="rit-admin-h">Call routing (in hours)</div>')
+            st.toggle("Use a menu — “press 1 for sales, 2 for accounts…”", key="bs_ivr_on")
+            common = {
+                "Who rings": st.column_config.TextColumn("Who rings", help="Names or extensions, e.g. Jo, Sam, 203",
+                                                         width="medium"),
+                "Ring style": st.column_config.SelectboxColumn("Ring style", options=BS_RING_STYLES, required=True),
+                "Ring (secs)": st.column_config.NumberColumn("Ring (secs)", min_value=5, max_value=120, step=5),
+                "If no answer": st.column_config.SelectboxColumn("If no answer", options=BS_NO_ANSWER, required=True),
+                "Then / voicemail email": st.column_config.TextColumn(
+                    "Then… / voicemail email", help="Overflow group or number, or the email voicemails go to"),
+            }
+            if ss.bs_ivr_on:
+                ss.bs_flow_latest = st.data_editor(
+                    ss.bs_flow_base, key="bs_flow_ed", hide_index=True, num_rows="dynamic", **FULL_WIDTH,
+                    column_config={
+                        "Key": st.column_config.SelectboxColumn("Key", options=BS_KEYS, required=True, width="small"),
+                        "Option": st.column_config.TextColumn("Option", help="e.g. Sales, Accounts, Support"),
+                        **common,
+                    })
+                script = bs_menu_script(build_sheet_data()["flow"])
+                if script:
+                    render_html(f'<div class="rit-bs-read">{icon("phone", 13)}<span><b>Menu will say:</b> “{esc(script)}”</span></div>')
+                st.selectbox("If the caller doesn't press anything", BS_NO_INPUT, key="bs_no_input")
+            else:
+                ss.bs_direct_latest = st.data_editor(
+                    ss.bs_direct_base, key="bs_direct_ed", hide_index=True, num_rows="fixed", **FULL_WIDTH,
+                    column_config=common)
+            st.caption("Add a row per menu option. Use the ＋ at the bottom of the table for more options.")
+
+        # ---- 3. Users ----
+        with t_users:
+            if n_users == 0:
+                render_html('<div class="nl-empty">Set the number of users in step 01 and a row appears here for each one.</div>')
+            else:
+                current = ss.get("bs_users_latest")
+                if current is None or len(current) != n_users:
+                    ss.bs_users_base = _bs_user_rows(n_users, current)
+                    ss.bs_users_ver += 1
+                devices = [BS_SOFTPHONE] + [i["name"] for i in basket_items()] + ["Customer's own device"]
+                ss.bs_users_latest = st.data_editor(
+                    ss.bs_users_base, key=f"bs_users_ed_{ss.bs_users_ver}", hide_index=True, num_rows="fixed", **FULL_WIDTH,
+                    column_config={
+                        "Email": st.column_config.TextColumn("Email", help="Login & voicemail-to-email address"),
+                        "Extension": st.column_config.TextColumn("Ext.", width="small"),
+                        "Device": st.column_config.SelectboxColumn("Device", options=devices, required=True),
+                        "Mobile app": st.column_config.CheckboxColumn("App", width="small"),
+                        "Voicemail to email": st.column_config.CheckboxColumn("VM → email", width="small"),
+                        "Direct dial (DDI)": st.column_config.TextColumn("Direct dial", help="Optional direct number"),
+                    })
+                st.caption(f"One row per licence ({n_users}). Changing the number of users adds or removes rows.")
+
+        # ---- 4. Voicemail & numbers ----
+        with t_vm:
+            v1, v2 = st.columns(2)
+            with v1:
+                st.text_input("Main / shared voicemail goes to (email)", key="bs_vm_email", placeholder="e.g. office@customer.co.uk")
+            with v2:
+                st.selectbox("Outgoing caller ID", BS_CLI, key="bs_cli")
+            n1, n2 = st.columns(2)
+            with n1:
+                st.selectbox("Phone numbers", BS_NUMBERS, key="bs_numbers")
+            with n2:
+                st.text_input("Main number" + (" to port" if ss.bs_numbers != "New number(s)" else " (if known)"),
+                              key="bs_main_number", placeholder="e.g. 01234 567890")
+            if ss.bs_numbers != "New number(s)":
+                p1, p2 = st.columns(2)
+                with p1:
+                    st.text_input("Current phone provider", key="bs_provider", placeholder="e.g. BT")
+                with p2:
+                    st.text_input("Postcode the numbers are billed to", key="bs_port_postcode")
+            st.text_area("Anything else our engineers should know?", key="bs_notes", height=72,
+                         placeholder="e.g. hold music, call queue announcements, specific user ringing rules")
+
+        # ---- Status + download ----
+        bs = build_sheet_data()
+        checks = build_sheet_checks(bs, n_users)
+        done = sum(1 for _, ok in checks if ok)
+        chips = "".join(chip(("✓ " if ok else "○ ") + lbl, "good" if ok else "muted") for lbl, ok in checks)
+        render_html(f'<div class="rit-bs-status"><div class="h">Build sheet {done}/{len(checks)} complete</div>'
+                    f'<div class="pe-chips">{chips}</div></div>')
+        b1, b2 = st.columns(2)
+        with b1:
+            if st.button("Prepare build sheet PDF", key="bs_make", **FULL_WIDTH):
+                ss.bs_pdf = generate_build_sheet_pdf(bs, build_sheet_parties())
+        with b2:
+            if ss.get("bs_pdf"):
+                st.download_button("Download build sheet PDF", data=ss.bs_pdf, key="bs_dl", mime="application/pdf",
+                                   file_name=f"Build-sheet-{build_sheet_parties()['ref']}.pdf", type="primary", **FULL_WIDTH)
+    return done, len(checks)
+
+
+def build_sheet_parties():
+    d = st.session_state.get("active_quote_details")
+    if d:
+        return {"ref": d["meta"]["ref"], "customer": d["customer"]["company"], "contact": d["customer"]["name"],
+                "site": d["customer"].get("delivery", ""), "reseller": d["reseller"]["company"],
+                "reseller_contact": d["reseller"]["name"]}
+    return {"ref": "DRAFT", "customer": "", "contact": "", "site": "", "reseller": "",
+            "reseller_contact": ""}
+
+
+def build_sheet_flowables(bs, parties, c_primary, c_head, n_users, sign_off=True):
+    styles = getSampleStyleSheet()
+    c_dark, c_bg, c_border, c_slate = (colors.HexColor("#0F172A"), colors.HexColor("#F8FAFC"),
+                                       colors.HexColor("#CBD5E1"), colors.HexColor("#475569"))
+    sec = ParagraphStyle("BSH", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=10.5, leading=14,
+                         textColor=c_primary, spaceBefore=8, spaceAfter=4)
+    td = ParagraphStyle("BSTD", parent=styles["Normal"], fontName="Helvetica", fontSize=8.3, leading=11, textColor=c_dark)
+    tdb = ParagraphStyle("BSTDB", parent=td, fontName="Helvetica-Bold")
+    th = ParagraphStyle("BSTH", parent=td, fontName="Helvetica-Bold", textColor=colors.white)
+    miss = "<font color='#B45309'><i>To confirm</i></font>"
+
+    def v(x):
+        x = str(x if x is not None else "").strip()
+        return esc(x) if x else miss
+
+    def grid(rows, widths, header=True):
+        t = Table(rows, colWidths=widths, repeatRows=1 if header else 0)
+        style = [("BOX", (0, 0), (-1, -1), 0.8, c_border), ("INNERGRID", (0, 0), (-1, -1), 0.4, c_border),
+                 ("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 4),
+                 ("BOTTOMPADDING", (0, 0), (-1, -1), 4), ("LEFTPADDING", (0, 0), (-1, -1), 6)]
+        if header:
+            style.append(("BACKGROUND", (0, 0), (-1, 0), c_head))
+        t.setStyle(TableStyle(style))
+        return t
+
+    def kv(pairs):
+        rows = [[Paragraph(f"<b>{esc(k)}</b>", td), Paragraph(val, td)] for k, val in pairs]
+        t = grid(rows, [150, 390], header=False)
+        t.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, -1), c_bg)]))
+        return t
+
+    out = []
+    out.append(kv([
+        ("Customer", v(parties["customer"])), ("Contact", v(parties["contact"])),
+        ("Site", v(parties["site"] if parties["site"] != "N/A" else "")),
+        ("Partner", f'{v(parties["reseller"])} · {v(parties["reseller_contact"])}'),
+        ("Users / licences", str(n_users)), ("Quote ref", esc(parties["ref"])),
+    ]))
+
+    out.append(Paragraph("1. Opening hours", sec))
+    hrs = [[Paragraph(x, th) for x in ("Day", "Open?", "From", "To")]]
+    for r in bs["hours"]:
+        o = bool(r.get("Open"))
+        hrs.append([Paragraph(esc(r["Day"]), td), Paragraph("Open" if o else "Closed", tdb if o else td),
+                    Paragraph(esc(r["From"]) if o else "—", td), Paragraph(esc(r["To"]) if o else "—", td)])
+    out.append(grid(hrs, [150, 130, 130, 130]))
+    ooh = esc(bs["ooh_action"] or "")
+    if bs["ooh_action"] == BS_OOH_ACTIONS[2]:
+        ooh += f" → {v(bs['ooh_divert'])}"
+    pairs = [("Bank holidays", "Closed" if bs["bank_hols"] else "Normal hours"), ("Out of hours", ooh)]
+    if bs["ooh_action"] in BS_OOH_ACTIONS[:2]:
+        pairs.append(("Closed message", v(bs["closed_text"])))
+    out.append(Spacer(1, 4))
+    out.append(kv(pairs))
+
+    out.append(Paragraph("2. Greeting, recording notice &amp; menu", sec))
+    pairs = [("Welcome message", v(bs["welcome_text"]) if bs["welcome_on"] else "None"),
+             ("Recording / GDPR notice", v(bs["gdpr_text"]) if bs["gdpr_on"] else "None"),
+             ("Recordings", esc(bs["audio"] or ""))]
+    if bs["ivr_on"]:
+        pairs += [("Menu message", v(bs["menu_script"])), ("No key pressed", esc(bs["no_input"] or ""))]
+    else:
+        pairs.append(("Menu", "No menu — calls ring straight through"))
+    out.append(kv(pairs))
+    out.append(Spacer(1, 4))
+    head = (["Key", "Option"] if bs["ivr_on"] else []) + ["Who rings", "Ring style", "Ring", "If no answer", "Then / VM email"]
+    rows = [[Paragraph(x, th) for x in head]]
+    for r in bs["flow"] or [{}]:
+        secs = r.get("Ring (secs)")
+        cells = ([Paragraph(v(r.get("Key")), tdb), Paragraph(v(r.get("Option")), tdb)] if bs["ivr_on"] else []) + [
+            Paragraph(v(r.get("Who rings")), td), Paragraph(v(r.get("Ring style")), td),
+            Paragraph(f"{int(secs)}s" if str(secs).replace(".0", "").isdigit() else miss, td),
+            Paragraph(v(r.get("If no answer")), td), Paragraph(esc(str(r.get("Then / voicemail email", "") or "—")), td)]
+        rows.append(cells)
+    widths = [32, 70, 120, 72, 36, 90, 120] if bs["ivr_on"] else [150, 80, 40, 110, 160]
+    out.append(grid(rows, widths))
+
+    out.append(Paragraph("3. Users", sec))
+    urows = [[Paragraph(x, th) for x in ("Name", "Email", "Ext.", "Device", "App", "VM mail", "Direct dial")]]
+    for u in bs["users"] or []:
+        name = f'{u.get("First name", "")} {u.get("Last name", "")}'.strip()
+        urows.append([Paragraph(v(name), tdb), Paragraph(v(u.get("Email")), td), Paragraph(v(u.get("Extension")), td),
+                      Paragraph(v(u.get("Device")), td), Paragraph("Yes" if u.get("Mobile app") else "No", td),
+                      Paragraph("Yes" if u.get("Voicemail to email") else "No", td),
+                      Paragraph(esc(str(u.get("Direct dial (DDI)", "") or "—")), td)])
+    if len(urows) == 1:
+        urows.append([Paragraph(miss, td)] + [""] * 6)
+    out.append(grid(urows, [95, 145, 34, 110, 30, 50, 76]))
+
+    out.append(Paragraph("4. Voicemail &amp; numbers", sec))
+    pairs = [("Main voicemail to", v(bs["vm_email"])), ("Outgoing caller ID", esc(bs["cli"] or "")),
+             ("Numbers", esc(bs["numbers"] or "")), ("Main number", v(bs["main_number"]))]
+    if bs["numbers"] != "New number(s)":
+        pairs += [("Current provider", v(bs["provider"])), ("Billing postcode", v(bs["port_postcode"]))]
+    pairs.append(("Notes", esc(bs["notes"]) if bs["notes"].strip() else "—"))
+    out.append(kv(pairs))
+
+    if sign_off:
+        out.append(Spacer(1, 10))
+        out.append(Paragraph("<font size=7.5 color='#475569'>By signing, the customer confirms these details are correct. "
+                             "Changes after the system is built may be chargeable.</font>", td))
+        out.append(Spacer(1, 4))
+        s = grid([[Paragraph("<b>Customer signature:</b> ______________________________", td),
+                   Paragraph("<b>Date:</b> ____________________", td)]], [340, 200], header=False)
+        s.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), c_bg), ("TOPPADDING", (0, 0), (-1, -1), 8),
+                               ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
+        out.append(s)
+    return out
+
+
+def generate_build_sheet_pdf(bs, parties):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=27, leftMargin=27, topMargin=28, bottomMargin=40,
+                            title=f"Build sheet {parties['ref']}", author=APP_NAME)
+    styles = getSampleStyleSheet()
+    story = []
+    left = []
+    left.append(Paragraph("NOVALINK", ParagraphStyle("b", parent=styles["Normal"], fontName="Helvetica-Bold",
+                                                     fontSize=19, leading=23, textColor=colors.HexColor("#0F5A73"))))
+    left.append(Paragraph("System Build Sheet", ParagraphStyle("t", parent=styles["Normal"], fontName="Helvetica-Bold",
+                                                                fontSize=13, leading=17)))
+    left.append(Paragraph("Programming details for your hosted telephony system",
+                          ParagraphStyle("s", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#475569"))))
+    hdr = Table([[left, Paragraph(f"<b>Ref:</b> {esc(parties['ref'])}<br/><b>Date:</b> {datetime.now().strftime('%d %B %Y')}",
+                                  ParagraphStyle("m", parent=styles["Normal"], fontSize=8.5, leading=12, alignment=2))]],
+                colWidths=[350, 190])
+    hdr.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LEFTPADDING", (0, 0), (0, 0), 0)]))
+    story += [hdr, Spacer(1, 6), HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#0F5A73"), spaceAfter=8)]
+    story += build_sheet_flowables(bs, parties, colors.HexColor("#0F5A73"), colors.HexColor("#0F5A73"),
+                                   int(st.session_state.get("num_licences", 0)))
+    doc.build(story, onFirstPage=_pdf_footer, onLaterPages=_pdf_footer)
+    return buffer.getvalue()
+
+
+def users_csv(bs):
+    return pd.DataFrame(bs["users"]).to_csv(index=False).encode("utf-8")
+
+
+# ==========================================
+# 9. PAGE
 # ==========================================
 LICENCE_FEATURES = [
     "Mobile app (iOS / Android)",
@@ -947,7 +1852,9 @@ CATEGORIES = ["All hardware", "Yealink Phones", "Fanvil Phones", "Cordless DECT"
 
 
 def quote_signature():
-    return (st.session_state.get("num_licences", 0), tuple(sorted(st.session_state.basket.items())))
+    return (st.session_state.get("num_licences", 0), st.session_state.get("deployment"),
+            LICENCE_MONTHLY_RATE, SETUP_FEE_PER_USER, BASIC_DEPLOYMENT_FEE,
+            tuple(sorted(st.session_state.basket.items())))
 
 
 def product_image_html(product, max_h=124):
@@ -957,17 +1864,66 @@ def product_image_html(product, max_h=124):
     return f'<div class="ph">{icon("image", 26, 1.6)}<span>Image not found</span></div>'
 
 
+def advanced_band_label(users: int) -> str:
+    prev = 0
+    for cap, _ in ADVANCED_DEPLOYMENT_TIERS:
+        if users <= cap:
+            return f"{prev + 1}–{cap} users"
+        prev = cap
+    band = ADVANCED_EXTRA_BAND_SIZE
+    top = prev + band * math.ceil((users - prev) / band)
+    return f"{top - band + 1}–{top} users"
+
+
+def advanced_bands(extra=4):
+    """(from, to) user bands for the tariff table: the fixed tiers + a few extra bands."""
+    out, prev = [], 0
+    for cap, _ in ADVANCED_DEPLOYMENT_TIERS:
+        out.append((prev + 1, cap))
+        prev = cap
+    for _ in range(extra):
+        out.append((prev + 1, prev + ADVANCED_EXTRA_BAND_SIZE))
+        prev += ADVANCED_EXTRA_BAND_SIZE
+    return out
+
+
 hero_slot = st.empty()
-tab_builder, tab_customer_view = st.tabs(["Build quotation", "Customer view"])
+tab_builder, tab_customer_view, tab_admin = st.tabs(["Build quotation", "Customer view", "Partner area"])
 
 # ---------------- TAB 1: BUILD QUOTATION ----------------
 with tab_builder:
     left, right = st.columns([1.72, 1], gap="large")
 
     with left:
+        # ===== Your sell prices (per quote) =====
+        _marked_up = (LICENCE_MONTHLY_RATE > FLOOR_LICENCE_MONTHLY or SETUP_FEE_PER_USER > FLOOR_SETUP_PER_USER
+                      or BASIC_DEPLOYMENT_FEE > FLOOR_BASIC_DEPLOYMENT)
+        with st.expander("Your sell prices · optional mark-up for this quote", expanded=False):
+            render_html(f'<div class="rit-bs-intro">Set what you charge your customer on this quote. Prices start at the '
+                        f'{POWERED_BY} partner price and can only go up. Everything above is your profit — see '
+                        '<b>Partner area</b>.</div>')
+            sp1, sp2, sp3 = st.columns(3)
+            with sp1:
+                st.number_input("Licence (£ / user / month)", min_value=FLOOR_LICENCE_MONTHLY, step=0.50,
+                                format="%.2f", key="sell_licence",
+                                help=f"Partner price {money(FLOOR_LICENCE_MONTHLY)}")
+            with sp2:
+                st.number_input("User setup (£ / user)", min_value=FLOOR_SETUP_PER_USER, step=1.00,
+                                format="%.2f", key="sell_setup", help=f"Partner price {money(FLOOR_SETUP_PER_USER)}")
+            with sp3:
+                st.number_input("Basic system build (£)", min_value=FLOOR_BASIC_DEPLOYMENT, step=5.00,
+                                format="%.2f", key="sell_basic", help=f"Partner price {money(FLOOR_BASIC_DEPLOYMENT)}")
+            if _marked_up:
+                render_html(f'<div class="rit-bs-read">{icon("check", 13, 3)}<span>Mark-up applied: licence '
+                            f'{money(LICENCE_MONTHLY_RATE)}, setup {money(SETUP_FEE_PER_USER)}, basic build '
+                            f'{money(BASIC_DEPLOYMENT_FEE)}</span></div>')
+            render_html(f'<div class="rit-floor">{icon("lock", 13)}Partner prices: licence {money(FLOOR_LICENCE_MONTHLY)} · '
+                        f'setup {money(FLOOR_SETUP_PER_USER)} · basic build {money(FLOOR_BASIC_DEPLOYMENT)}. '
+                        'Advanced deployment and hardware are fixed.</div>')
+
         # ===== 01 · Users =====
         with st.container(key="card-users"):
-            section_header("01", "Hosted user licences", "Ongoing monthly · 36-month minimum term")
+            section_header("01", "Hosted user licences", f"Ongoing monthly · {CONTRACT_MONTHS}-month minimum term")
             u1, u2 = st.columns([1.35, 1], gap="medium")
             with u1:
                 feats = "".join(
@@ -980,24 +1936,56 @@ with tab_builder:
                     '<div class="sub">A complete unified-communications seat, enterprise features included.</div></div>'
                     f'<div class="nl-price">{money(LICENCE_MONTHLY_RATE)} <small>/ user / mo</small></div></div>'
                     f'<div class="nl-feats">{feats}</div>'
-                    f'<div class="nl-activation">{icon("zap", 14)}<span>One-off activation &amp; provisioning:'
-                    f' <b>{money(ACTIVATION_FEE_PER_USER)} per user</b>, billed in month 1</span></div></div>'
+                    f'<div class="nl-activation">{icon("zap", 14)}<span>One-off user setup &amp; provisioning:'
+                    f' <b>{money(SETUP_FEE_PER_USER)} per user</b>, billed in month 1</span></div></div>'
                 )
             with u2:
                 st.number_input("Number of users", min_value=0, max_value=500, step=1, key="num_licences")
                 users = st.session_state.num_licences
                 mrc = float(users) * LICENCE_MONTHLY_RATE
-                act = float(users) * ACTIVATION_FEE_PER_USER
+                setup = total_setup_fee(users)
                 render_html(
                     '<div class="nl-mini">'
                     f'<div><div class="l">Monthly</div><div class="v">{money(mrc)}</div><div class="s">{money(mrc * (1 + VAT_RATE))} inc VAT</div></div>'
-                    f'<div><div class="l">Activation</div><div class="v">{money(act)}</div><div class="s">one-off, ex VAT</div></div>'
+                    f'<div><div class="l">User setup</div><div class="v">{money(setup)}</div><div class="s">one-off, ex VAT</div></div>'
                     "</div>"
                 )
 
-        # ===== 02 · Hardware =====
+        # ===== 02 · Deployment =====
+        with st.container(key="card-deploy"):
+            section_header("02", "Deployment", "One-off · choose how the system goes live")
+            users = st.session_state.num_licences
+            basic_price = BASIC_DEPLOYMENT_FEE
+            adv_price = advanced_deployment_price(max(users, 1))
+            opts = [DEPLOY_BASIC, DEPLOY_ADVANCED]
+            d1, d2 = st.columns(2, gap="medium")
+            for col, opt in zip((d1, d2), opts):
+                selected = st.session_state.deployment == opt
+                with col:
+                    with st.container(key=f"dep-{'on' if selected else 'off'}-{opt}"):
+                        if opt == DEPLOY_BASIC:
+                            price_txt = money(basic_price)
+                            meta = [chip("Flat fee", "muted"), chip("Self-install", "muted")]
+                        else:
+                            price_txt = money(adv_price)
+                            meta = [chip(advanced_band_label(max(users, 1)), "accent"), chip("Fully managed", "muted")]
+                        render_html(
+                            f'<div class="rit-dep-top"><div class="rit-dep-name">{esc(DEPLOYMENT_LABELS[opt])}</div>'
+                            f'<div class="rit-dep-price">{price_txt}</div></div>'
+                            f'<div class="rit-dep-desc">{esc(DEPLOYMENT_DESCS[opt])}</div>'
+                            f'<div class="pe-chips" style="margin:10px 0 12px 0">{"".join(meta)}</div>'
+                        )
+                        st.button("Selected" if selected else "Choose this option", key=f"pick_{opt}",
+                                  type="primary" if selected else "secondary", disabled=selected,
+                                  on_click=lambda o=opt: st.session_state.update(deployment=o), **FULL_WIDTH)
+            if users == 0:
+                render_html(f'<div class="pe-hint">{icon("alert", 14)}<span>Deployment is added once you set the number of users.'
+                            f' Advanced pricing shown is for {advanced_band_label(1)}.</span></div>')
+            render_build_sheet_form()
+
+        # ===== 03 · Hardware =====
         with st.container(key="card-hardware"):
-            section_header("02", "Handsets, headsets & hardware", "Optional · one-off upfront · tap + to add")
+            section_header("03", "Handsets, headsets & hardware", "Optional · one-off upfront · tap + to add")
             if hasattr(st, "segmented_control"):
                 chosen = st.segmented_control("Category", CATEGORIES, default="All hardware",
                                               key="hw_cat", label_visibility="collapsed")
@@ -1034,13 +2022,13 @@ with tab_builder:
                                 else '<div class="nl-sub">Not in quote</div>'
                             )
 
-        # ===== 03 · Details & PDF =====
+        # ===== 04 · Details & PDF =====
         with st.container(key="card-details"):
-            section_header("03", "Quote details & PDF", "Who it's from, who it's for, and where it's going")
+            section_header("04", "Quote details & PDF", "Who it's from, who it's for, and where it's going")
             with st.form(key="telephony_quote_form", border=False):
                 col_r, col_c = st.columns(2, gap="large")
                 with col_r:
-                    render_html(f'<div class="nl-form-h">{icon("building", 16)}Your company (service provider)</div>')
+                    render_html(f'<div class="nl-form-h">{icon("building", 16)}Your company</div>')
                     r_company = st.text_input("Company / reseller name *", placeholder="e.g. Acme Communications Ltd")
                     r_contact = st.text_input("Your name / account manager *", placeholder="e.g. John Doe")
                     r_email = st.text_input("Your email *", placeholder="e.g. sales@acmecomms.co.uk")
@@ -1053,25 +2041,25 @@ with tab_builder:
                     c_phone = st.text_input("Customer phone", placeholder="e.g. 0161 123 4567")
                 render_html(f'<div class="nl-form-h" style="margin-top:10px">{icon("truck", 16)}Delivery / site address'
                             ' <span style="color:var(--faint);font-weight:500">(optional for initial quotes)</span></div>')
-                d1, d2, d3 = st.columns([2, 1, 1])
-                with d1:
+                a1, a2, a3 = st.columns([2, 1, 1])
+                with a1:
                     del_addr1 = st.text_input("Address line 1", placeholder="Building name or street")
-                with d2:
+                with a2:
                     del_city = st.text_input("Town / city", placeholder="Town / city")
-                with d3:
+                with a3:
                     del_postcode = st.text_input("Postcode", placeholder="Postcode")
                 generate_submitted = st.form_submit_button("Save quotation & generate PDF", type="primary", **FULL_WIDTH)
 
             if generate_submitted:
                 current_h_items = basket_items()
                 if not r_company or not r_contact or not r_email:
-                    st.error("Please complete your service provider details (company, name and email).")
+                    st.error("Please complete your company details (company, name and email).")
                 elif not c_company or not c_contact or not c_email:
                     st.error("Please fill in the customer's company, contact name and email.")
                 elif st.session_state.num_licences == 0 and not current_h_items:
                     st.error("Add at least one user licence or a piece of hardware before generating a quote.")
                 else:
-                    quote_ref = f"NL-{datetime.now().strftime('%y%m%d%H%M')}"
+                    quote_ref = f"{QUOTE_PREFIX}-{datetime.now().strftime('%y%m%d%H%M')}"
                     quote_date = datetime.now().strftime("%d %B %Y")
                     addr_parts = [p.strip() for p in [del_addr1, del_city, del_postcode] if p.strip()]
                     full_delivery = ", ".join(addr_parts) if addr_parts else "N/A"
@@ -1079,34 +2067,50 @@ with tab_builder:
                     customer_info = {"company": c_company, "name": c_contact, "email": c_email, "phone": c_phone,
                                      "delivery": full_delivery}
                     quote_meta = {"ref": quote_ref, "date": quote_date}
+                    dep_opt = st.session_state.deployment
 
                     pdf_bytes = generate_quotation_pdf(quote_meta, reseller_info, customer_info,
-                                                       st.session_state.num_licences, current_h_items)
+                                                       st.session_state.num_licences, current_h_items, dep_opt)
                     st.session_state.active_quote_pdf = pdf_bytes
                     st.session_state.active_quote_ref = quote_ref
                     st.session_state.active_quote_sig = quote_signature()
                     st.session_state.active_quote_customer = c_company
+                    st.session_state.active_quote_details = {
+                        "meta": quote_meta, "reseller": reseller_info, "customer": customer_info,
+                    }
+                    st.session_state.pop("partner_order_pdf", None)
 
                     hw_summary = ("; ".join(f"{i['name']} x{i['qty']}" for i in current_h_items)
                                   if current_h_items else "No Hardware (App/Licences Only)")
-                    one_off_combined = total_activation_fee() + total_hardware_capex()
+                    one_off_combined = total_one_off()
+                    margin = reseller_margin(st.session_state.num_licences, dep_opt)
+                    _ps = profit_summary(cost_sell_lines(st.session_state.num_licences, dep_opt, current_h_items))
                     record = {
-                        "Quote Ref": [quote_ref], "Date": [quote_date], "Brand": ["Novalink Telephony"],
-                        "Reseller": [r_company], "Customer Company": [c_company], "Customer Contact": [c_contact],
+                        "Quote Ref": [quote_ref], "Date": [quote_date], "Brand": [APP_NAME],
+                        "Reseller": [r_company], "Account Manager": [r_contact],
+                        "Customer Company": [c_company], "Customer Contact": [c_contact],
                         "Customer Email": [c_email], "Licences": [st.session_state.num_licences],
+                        "Licence Rate (£)": [f"{LICENCE_MONTHLY_RATE:.2f}"],
                         "Ongoing Monthly Costs Ex VAT (£)": [f"{total_monthly_licences():.2f}"],
                         "Ongoing Monthly Costs Inc VAT (£)": [f"{total_monthly_licences() * (1 + VAT_RATE):.2f}"],
-                        "Activation Fee Ex VAT (£)": [f"{total_activation_fee():.2f}"],
+                        "User Setup Ex VAT (£)": [f"{total_setup_fee():.2f}"],
+                        "Deployment Option": [DEPLOYMENT_LABELS[dep_opt]],
+                        "Deployment Ex VAT (£)": [f"{deployment_fee():.2f}"],
                         "Hardware Total Ex VAT (£)": [f"{total_hardware_capex():.2f}"],
                         "Total One-Off Costs Ex VAT (£)": [f"{one_off_combined:.2f}"],
                         "Total One-Off Costs Inc VAT (£)": [f"{one_off_combined * (1 + VAT_RATE):.2f}"],
+                        "Reseller Margin Monthly (£)": [f"{margin['monthly']:.2f}"],
+                        "Reseller Margin One-Off (£)": [f"{margin['one_off']:.2f}"],
+                        "Novalink Monthly Cost (£)": [f"{_ps['monthly_cost']:.2f}"],
+                        "Novalink One-Off Cost (£)": [f"{_ps['oneoff_cost']:.2f}"],
+                        f"Contract Profit {CONTRACT_MONTHS}m (£)": [f"{_ps['contract_total_profit']:.2f}"],
                         "Hardware Summary": [hw_summary], "Delivery Address": [full_delivery],
                     }
                     df = pd.DataFrame(record)
-                    if not os.path.isfile("quotes.csv"):
-                        df.to_csv("quotes.csv", index=False)
+                    if not os.path.isfile(QUOTES_FILE):
+                        df.to_csv(QUOTES_FILE, index=False)
                     else:
-                        df.to_csv("quotes.csv", mode="a", header=False, index=False)
+                        df.to_csv(QUOTES_FILE, mode="a", header=False, index=False)
                     st.success(f"Quotation {quote_ref} generated for {c_company}.")
 
             if "active_quote_pdf" in st.session_state:
@@ -1126,7 +2130,7 @@ with tab_builder:
         with st.container(key="card-summary"):
             users = st.session_state.num_licences
             mrc_ex = total_monthly_licences()
-            one_off_ex = total_activation_fee() + total_hardware_capex()
+            one_off_ex = total_one_off()
             month1_ex = mrc_ex + one_off_ex
             render_html(
                 '<div class="nl-sum-h"><div class="t">Live quote</div><span class="nl-live">Updating</span></div>'
@@ -1145,8 +2149,10 @@ with tab_builder:
                 render_html(
                     f'<div class="nl-line"><span class="n">Cloud user licence<small>× {users}</small></span>'
                     f'<span class="p">{money(mrc_ex)}/mo</span></div>'
-                    f'<div class="nl-line"><span class="n">Activation &amp; setup<small>× {users}</small></span>'
-                    f'<span class="p">{money(total_activation_fee())}</span></div>'
+                    f'<div class="nl-line"><span class="n">User setup &amp; provisioning<small>× {users}</small></span>'
+                    f'<span class="p">{money(total_setup_fee())}</span></div>'
+                    f'<div class="nl-line"><span class="n">{esc(DEPLOYMENT_LABELS[st.session_state.deployment])}</span>'
+                    f'<span class="p">{money(deployment_fee())}</span></div>'
                 )
             for item in items:
                 with st.container(key=f"sumline-{item['id']}"):
@@ -1163,8 +2169,8 @@ with tab_builder:
                         st.button("✕", key=f"del_{item['id']}", on_click=remove_from_basket, args=(item["id"],),
                                   help=f"Remove {item['name']}")
             render_html(
-                f'<div class="nl-term">{icon("alert", 14)}<span>Licences are on a <b>36-month minimum term</b>.'
-                ' Early termination charges apply. Quote valid for 30 days.</span></div>'
+                f'<div class="nl-term">{icon("alert", 14)}<span>Licences are on a <b>{CONTRACT_MONTHS}-month minimum term</b>.'
+                f' Early termination charges apply. Quote valid for {QUOTE_VALID_DAYS} days.</span></div>'
             )
             if "active_quote_pdf" in st.session_state and st.session_state.get("active_quote_sig") == quote_signature():
                 st.download_button(
@@ -1177,16 +2183,18 @@ with tab_builder:
                     **FULL_WIDTH,
                 )
             else:
-                st.caption("Fill in step 03 to generate the official PDF.")
+                st.caption("Fill in step 04 to generate the official PDF.")
 
 # ---------------- TAB 2: CUSTOMER VIEW ----------------
 with tab_customer_view:
     users = st.session_state.get("num_licences", 0)
     mrc_ex = total_monthly_licences()
     mrc_vat = mrc_ex * VAT_RATE
-    act_ex = total_activation_fee()
+    setup_ex = total_setup_fee()
+    dep_ex = deployment_fee()
+    dep_opt = st.session_state.deployment
     hw_ex = total_hardware_capex()
-    one_off_ex = act_ex + hw_ex
+    one_off_ex = setup_ex + dep_ex + hw_ex
     one_off_vat = one_off_ex * VAT_RATE
     month1_ex = mrc_ex + one_off_ex
     items = basket_items()
@@ -1209,7 +2217,7 @@ with tab_customer_view:
             )
 
         with st.container(key="card-cv-monthly"):
-            section_header("1", "Ongoing monthly costs", "Per user, per month · 36-month minimum term")
+            section_header("1", "Ongoing monthly costs", f"Per user, per month · {CONTRACT_MONTHS}-month minimum term")
             if users > 0:
                 render_html(
                     '<table class="nl-table"><thead><tr><th>Service</th><th class="num">Users</th>'
@@ -1218,21 +2226,58 @@ with tab_customer_view:
                     ' auto-attendant &amp; inclusive UK calls</div></td>'
                     f'<td class="num">{users}</td><td class="num">{money(LICENCE_MONTHLY_RATE)}</td><td class="num"><b>{money(mrc_ex)}</b></td></tr>'
                     f'<tr class="sub"><td colspan="3">Subtotal (ex VAT)</td><td class="num">{money(mrc_ex)}</td></tr>'
-                    f'<tr class="sub"><td colspan="3">VAT @ 20%</td><td class="num">{money(mrc_vat)}</td></tr>'
+                    f'<tr class="sub"><td colspan="3">VAT @ {VAT_PCT}</td><td class="num">{money(mrc_vat)}</td></tr>'
                     f'<tr class="grand"><td colspan="3">Total monthly (inc VAT)</td><td class="num">{money(mrc_ex + mrc_vat)} / mo</td></tr>'
                     "</tbody></table>"
                 )
             else:
                 render_html('<div class="nl-empty">No user licences selected yet.</div>')
 
+        _bs_cv = build_sheet_data() if "bs_hours_preset" in st.session_state else None
+        if _bs_cv and users > 0:
+            with st.container(key="card-cv-setup"):
+                section_header("✓", "How your system will work", "Summary of your setup · confirm with your account manager")
+                _named = [u for u in _bs_cv["users"] if str(u.get("First name", "")).strip()]
+                if _bs_cv["ivr_on"] and _bs_cv["flow"]:
+                    _route = "".join(
+                        f'<div class="rit-cv-opt"><span class="key">{esc(r.get("Key", ""))}</span>'
+                        f'<span class="o">{esc(r.get("Option", "") or "—")}</span>'
+                        f'<span class="w">rings {esc(r.get("Who rings", "") or "to confirm")}, then {esc(str(r.get("If no answer", "")).lower())}</span></div>'
+                        for r in _bs_cv["flow"])
+                else:
+                    _f = (_bs_cv["flow"] or [{}])[0]
+                    _route = (f'<div class="rit-cv-opt"><span class="key">☎</span><span class="o">All calls</span>'
+                              f'<span class="w">ring {esc(_f.get("Who rings", "") or "to confirm")}, then {esc(str(_f.get("If no answer", "")).lower())}</span></div>')
+                render_html(
+                    '<div class="rit-cv-setup">'
+                    f'<div class="pe-panel"><div class="h">Opening hours</div><div class="big">{esc(bs_hours_summary(_bs_cv["hours"]))}</div>'
+                    f'<div class="sm">Out of hours: {esc(_bs_cv["ooh_action"] or "")}</div></div>'
+                    f'<div class="pe-panel"><div class="h">Callers hear</div><div class="sm">'
+                    + (f'“{esc(_bs_cv["welcome_text"])}”<br>' if _bs_cv["welcome_on"] else "")
+                    + ("Call-recording / GDPR notice<br>" if _bs_cv["gdpr_on"] else "")
+                    + (f'“{esc(_bs_cv["menu_script"])}”' if _bs_cv["ivr_on"] and _bs_cv["menu_script"] else "")
+                    + '</div></div>'
+                    f'<div class="pe-panel"><div class="h">Users set up</div><div class="big">{len(_named)} of {users}</div>'
+                    f'<div class="sm">{esc(", ".join((str(u.get("First name", "")) + " " + str(u.get("Last name", ""))).strip() for u in _named[:6]))}'
+                    + (" …" if len(_named) > 6 else "") + '</div></div>'
+                    '</div>'
+                    f'<div class="nl-lines-h">Call routing</div>{_route}'
+                )
+
         with st.container(key="card-cv-oneoff"):
-            section_header("2", "One-off upfront costs", "Activation and hardware, billed once")
-            rows = (
-                '<tr><td><div style="display:flex;gap:12px;align-items:center"><div class="thumb">'
-                f'<span style="color:#7C83FF">{icon("zap", 18)}</span></div><div><b>User setup &amp; activation</b>'
-                '<div class="desc">Provisioning, portal setup and licence deployment</div></div></div></td>'
-                f'<td class="num">{users}</td><td class="num">{money(ACTIVATION_FEE_PER_USER)}</td><td class="num"><b>{money(act_ex)}</b></td></tr>'
-            )
+            section_header("2", "One-off upfront costs", "Setup, deployment and hardware, billed once")
+            rows = ""
+            if users > 0:
+                rows += (
+                    '<tr><td><div style="display:flex;gap:12px;align-items:center"><div class="thumb">'
+                    f'<span style="color:#7C83FF">{icon("zap", 18)}</span></div><div><b>User setup &amp; provisioning</b>'
+                    '<div class="desc">Extension setup, user provisioning and licence activation</div></div></div></td>'
+                    f'<td class="num">{users}</td><td class="num">{money(SETUP_FEE_PER_USER)}</td><td class="num"><b>{money(setup_ex)}</b></td></tr>'
+                    '<tr><td><div style="display:flex;gap:12px;align-items:center"><div class="thumb">'
+                    f'<span style="color:#7C83FF">{icon("truck", 18)}</span></div><div><b>{esc(DEPLOYMENT_LABELS[dep_opt])}</b>'
+                    f'<div class="desc">{esc(DEPLOYMENT_DESCS[dep_opt])}</div></div></div></td>'
+                    f'<td class="num">1</td><td class="num">{money(dep_ex)}</td><td class="num"><b>{money(dep_ex)}</b></td></tr>'
+                )
             for item in items:
                 uri = get_base64_image(item.get("image"))
                 thumb = f'<img src="{uri}" alt="">' if uri else f'<span style="color:#94A3B8">{icon("phone", 18)}</span>'
@@ -1242,17 +2287,188 @@ with tab_customer_view:
                     f'<td class="num">{item["qty"]}</td><td class="num">{money(item["price"])}</td>'
                     f'<td class="num"><b>{money(item["line_total"])}</b></td></tr>'
                 )
+            if not rows:
+                render_html('<div class="nl-empty">No one-off items yet.</div>')
+            else:
+                render_html(
+                    '<table class="nl-table"><thead><tr><th>Item</th><th class="num">Qty</th>'
+                    '<th class="num">Unit (ex VAT)</th><th class="num">Total (ex VAT)</th></tr></thead><tbody>'
+                    + rows
+                    + f'<tr class="sub"><td colspan="3">Subtotal (ex VAT)</td><td class="num">{money(one_off_ex)}</td></tr>'
+                    f'<tr class="sub"><td colspan="3">VAT @ {VAT_PCT}</td><td class="num">{money(one_off_vat)}</td></tr>'
+                    f'<tr class="grand"><td colspan="3">Total one-off (inc VAT)</td><td class="num">{money(one_off_ex + one_off_vat)}</td></tr>'
+                    "</tbody></table>"
+                )
             render_html(
-                '<table class="nl-table"><thead><tr><th>Item</th><th class="num">Qty</th>'
-                '<th class="num">Unit (ex VAT)</th><th class="num">Total (ex VAT)</th></tr></thead><tbody>'
-                + rows
-                + f'<tr class="sub"><td colspan="3">Subtotal (ex VAT)</td><td class="num">{money(one_off_ex)}</td></tr>'
-                f'<tr class="sub"><td colspan="3">VAT @ 20%</td><td class="num">{money(one_off_vat)}</td></tr>'
-                f'<tr class="grand"><td colspan="3">Total one-off (inc VAT)</td><td class="num">{money(one_off_ex + one_off_vat)}</td></tr>'
-                "</tbody></table>"
-                '<div class="nl-note"><b>Commercial notes:</b> Quotation valid for 30 calendar days.'
-                ' User licences are subject to a 36-month minimum term.</div>'
+                f'<div class="nl-note"><b>Commercial notes:</b> Quotation valid for {QUOTE_VALID_DAYS} calendar days.'
+                f' User licences are subject to a {CONTRACT_MONTHS}-month minimum term. {esc(APP_NAME)} hosted telephony is powered by {esc(POWERED_BY)}.</div>'
             )
+
+# ---------------- TAB 3: PARTNER AREA ----------------
+with tab_admin:
+    _, amid, _ = st.columns([0.06, 1, 0.06])
+    with amid:
+        with st.container(key="partner-area"):
+            render_html(f'<div class="rit-admin-bar">{icon("lock", 14)}<span>Partner area · your profit and the order you '
+                        f'place with {POWERED_BY} — keep this tab away from your customer</span></div>')
+            sub_profit, sub_order, sub_pricing = st.tabs(["Your profit", f"{POWERED_BY} order", f"{POWERED_BY} price list"])
+
+            a_users = st.session_state.get("num_licences", 0)
+            a_dep = st.session_state.deployment
+            a_items = basket_items()
+            a_lines = cost_sell_lines(a_users, a_dep, a_items)
+            ps = profit_summary(a_lines)
+            details = st.session_state.get("active_quote_details")
+
+            # ===== PROFIT =====
+            with sub_profit:
+                with st.container(key="card-admin-profit"):
+                    section_header("£", "Your profit on this deal",
+                                   f"Your sell price minus what you pay {POWERED_BY} · {CONTRACT_MONTHS}-month contract")
+                    if not a_lines:
+                        render_html('<div class="nl-empty">Build a quote first (users, deployment, hardware) and your profit appears here.</div>')
+                    else:
+                        who = details["customer"]["company"] if details else "the current quote"
+                        render_html(
+                            f'<div class="rit-deal">{chip("Deal", "muted")}<b>{esc(who)}</b>'
+                            f'<span>{a_users} users · {esc(DEPLOYMENT_LABELS[a_dep])}</span></div>'
+                            '<div class="rit-pkpis">'
+                            f'<div class="nl-kpi" style="--c:#7C83FF"><div class="l">Monthly profit</div><div class="v">{money(ps["monthly_profit"])}</div>'
+                            f'<div class="i">{money(ps["monthly_sell"])} billed − {money(ps["monthly_cost"])} to {POWERED_BY}</div></div>'
+                            f'<div class="nl-kpi" style="--c:#38D6F5"><div class="l">Annual profit</div><div class="v">{money(ps["annual_profit"])}</div>'
+                            '<div class="i">Recurring, 12 months</div></div>'
+                            f'<div class="nl-kpi" style="--c:#38D6F5"><div class="l">One-off profit</div><div class="v">{money(ps["oneoff_profit"])}</div>'
+                            '<div class="i">Setup, deployment &amp; hardware</div></div>'
+                            f'<div class="nl-kpi rit-hero-kpi" style="--c:#34D399"><div class="l">{CONTRACT_MONTHS}-month contract profit</div>'
+                            f'<div class="v">{money(ps["contract_total_profit"])}</div>'
+                            f'<div class="i">{money(ps["contract_recurring_profit"])} recurring + {money(ps["oneoff_profit"])} one-off'
+                            f' · {ps["margin_pct"]:.1f}% margin</div></div>'
+                            '</div>'
+                        )
+                        rows = ""
+                        for kind, label in (("monthly", "Monthly recurring"), ("one_off", "One-off")):
+                            sel = [ln for ln in a_lines if ln["kind"] == kind]
+                            if not sel:
+                                continue
+                            rows += f'<tr class="grp"><td colspan="5">{label}</td></tr>'
+                            for ln in sel:
+                                pcls = "pos" if ln["profit"] > 0 else "zero"
+                                rows += (
+                                    f'<tr><td><b>{esc(ln["name"])}</b></td><td class="num">{ln["qty"]}</td>'
+                                    f'<td class="num">{money(ln["cost_unit"])}</td><td class="num">{money(ln["sell_unit"])}</td>'
+                                    f'<td class="num"><span class="rit-p {pcls}">{money(ln["profit"])}</span></td></tr>'
+                                )
+                        render_html(
+                            '<table class="nl-table"><thead><tr><th>Line</th><th class="num">Qty</th>'
+                            f'<th class="num">You pay {POWERED_BY}</th><th class="num">You charge</th><th class="num">Profit</th></tr></thead>'
+                            f'<tbody>{rows}'
+                            f'<tr class="sub"><td colspan="4">Contract revenue ({CONTRACT_MONTHS} months, ex VAT)</td><td class="num">{money(ps["contract_revenue"])}</td></tr>'
+                            f'<tr class="sub"><td colspan="4">Paid to {POWERED_BY} ({CONTRACT_MONTHS} months, ex VAT)</td><td class="num">{money(ps["contract_cost"])}</td></tr>'
+                            f'<tr class="grand"><td colspan="4">Contract profit (ex VAT)</td><td class="num">{money(ps["contract_total_profit"])}</td></tr>'
+                            '</tbody></table>'
+                            '<div class="nl-note">Hardware is currently supplied at catalogue price, so it carries no profit. '
+                            'Advanced system deployment is a fixed Novalink price, so it also carries no profit. '
+                            'Raise your licence, setup or Basic build prices in <b>Build quotation → Your sell prices</b> to grow your margin.</div>'
+                        )
+
+            # ===== NOVALINK ORDER =====
+            with sub_order:
+                with st.container(key="card-admin-order"):
+                    section_header("⇄", f"{POWERED_BY} partner order",
+                                   f"What you pay {POWERED_BY} for this deal · your sell prices are never included")
+                    if not a_lines:
+                        render_html('<div class="nl-empty">Build a quote first, then create the partner order here.</div>')
+                    else:
+                        render_html(
+                            '<div class="nl-kpis" style="margin-top:0">'
+                            f'<div class="nl-kpi" style="--c:#38BDF8"><div class="l">Monthly to {POWERED_BY}</div><div class="v">{money(ps["monthly_cost"])}</div>'
+                            f'<div class="i">{money(ps["monthly_cost"] * (1 + VAT_RATE))} inc VAT</div></div>'
+                            f'<div class="nl-kpi" style="--c:#38BDF8"><div class="l">One-off to {POWERED_BY}</div><div class="v">{money(ps["oneoff_cost"])}</div>'
+                            f'<div class="i">{money(ps["oneoff_cost"] * (1 + VAT_RATE))} inc VAT</div></div>'
+                            f'<div class="nl-kpi" style="--c:#38BDF8"><div class="l">Month 1 payable</div><div class="v">{money(ps["monthly_cost"] + ps["oneoff_cost"])}</div>'
+                            f'<div class="i">{money((ps["monthly_cost"] + ps["oneoff_cost"]) * (1 + VAT_RATE))} inc VAT</div></div>'
+                            '</div>'
+                        )
+                        orow = "".join(
+                            f'<tr><td><b>{esc(ln["name"])}</b><div class="desc">{esc(ln["desc"])}</div></td>'
+                            f'<td class="num">{ln["qty"]}</td><td class="num">{money(ln["cost_unit"])}{" / mo" if ln["kind"] == "monthly" else ""}</td>'
+                            f'<td class="num"><b>{money(ln["cost_total"])}{" / mo" if ln["kind"] == "monthly" else ""}</b></td></tr>'
+                            for ln in a_lines
+                        )
+                        render_html(
+                            '<table class="nl-table" style="margin-top:14px !important"><thead><tr><th>Item</th><th class="num">Qty</th>'
+                            '<th class="num">Partner price</th><th class="num">Total (ex VAT)</th></tr></thead>'
+                            f'<tbody>{orow}</tbody></table>'
+                        )
+                        if not details:
+                            render_html(f'<div class="pe-hint">{icon("alert", 14)}<span>Generate the customer quote first '
+                                        '(Build quotation → step 04). The partner order uses the same customer and reference.</span></div>')
+                        else:
+                            if st.session_state.get("active_quote_sig") != quote_signature():
+                                st.warning("The quote has changed since the customer PDF was made. "
+                                           "Regenerate the customer quote first so both documents match.")
+                            else:
+                                if st.button(f"Create {POWERED_BY} partner order PDF", type="primary",
+                                             key="mk_partner", **FULL_WIDTH):
+                                    cref = details["meta"]["ref"]
+                                    order_meta = {"ref": cref.replace(QUOTE_PREFIX, "NLP", 1), "customer_ref": cref,
+                                                  "date": datetime.now().strftime("%d %B %Y")}
+                                    st.session_state.partner_order_pdf = generate_partner_order_pdf(
+                                        order_meta, details["reseller"], details["customer"], a_lines,
+                                        build_sheet=build_sheet_data(), n_users=a_users)
+                                    st.session_state.partner_order_ref = order_meta["ref"]
+                                if st.session_state.get("partner_order_pdf"):
+                                    st.download_button(
+                                        f"Download {st.session_state.partner_order_ref}.pdf",
+                                        data=st.session_state.partner_order_pdf,
+                                        file_name=f"{st.session_state.partner_order_ref}.pdf",
+                                        mime="application/pdf", key="dl_partner", **FULL_WIDTH)
+                                    st.caption(f"Send this to {POWERED_BY} to place the order. It shows only partner prices "
+                                               "and the end customer's name and site, with the system build sheet attached.")
+                                    _bs_now = build_sheet_data()
+                                    _chk = build_sheet_checks(_bs_now, a_users)
+                                    _missing = [lbl for lbl, ok in _chk if not ok]
+                                    if _missing:
+                                        st.info("Build sheet still to complete: " + ", ".join(_missing) +
+                                                " (Build quotation → 02 Deployment → System setup details).")
+                                    if _bs_now["users"]:
+                                        st.download_button("Download users list (CSV)", data=users_csv(_bs_now),
+                                                           file_name=f"{st.session_state.partner_order_ref}-users.csv",
+                                                           mime="text/csv", key="dl_users_csv", **FULL_WIDTH)
+
+            # ===== NOVALINK PRICE LIST (read-only) =====
+            with sub_pricing:
+                with st.container(key="card-admin"):
+                    section_header("£", f"{POWERED_BY} partner prices",
+                                   "What you pay us · your minimum sell prices · set your mark-up per quote")
+                    render_html(
+                        '<table class="nl-table"><thead><tr><th>Item</th><th class="num">Partner price (ex VAT)</th>'
+                        '<th class="num">Your price on this quote</th></tr></thead><tbody>'
+                        f'<tr><td><b>Hosted cloud user licence</b><div class="desc">Per user, per month · {CONTRACT_MONTHS}-month term</div></td>'
+                        f'<td class="num">{money(FLOOR_LICENCE_MONTHLY)}</td><td class="num"><b>{money(LICENCE_MONTHLY_RATE)}</b></td></tr>'
+                        '<tr><td><b>User setup &amp; provisioning</b><div class="desc">Per user, one-off</div></td>'
+                        f'<td class="num">{money(FLOOR_SETUP_PER_USER)}</td><td class="num"><b>{money(SETUP_FEE_PER_USER)}</b></td></tr>'
+                        '<tr><td><b>Basic system build</b><div class="desc">Flat fee, one-off</div></td>'
+                        f'<td class="num">{money(FLOOR_BASIC_DEPLOYMENT)}</td><td class="num"><b>{money(BASIC_DEPLOYMENT_FEE)}</b></td></tr>'
+                        '<tr><td><b>Hardware</b><div class="desc">Supplied at catalogue price</div></td>'
+                        '<td class="num">As listed</td><td class="num">As listed</td></tr>'
+                        '</tbody></table>'
+                        '<div class="nl-note">Change your prices in <b>Build quotation → Your sell prices</b>. '
+                        'They apply to the quote you\'re building and can never go below the partner price.</div>'
+                    )
+
+                # Advanced tariff (locked) + margin preview
+                with st.container(key="card-admin-tariff"):
+                    section_header("🔒", "Advanced system deployment", "Fixed Novalink tariff · not editable")
+                    bands = advanced_bands()
+                    trows = "".join(
+                        f'<tr><td>{a}–{b} users</td><td class="num"><b>{money(advanced_deployment_price(b))}</b></td></tr>'
+                        for a, b in bands
+                    )
+                    render_html(
+                        '<table class="nl-table"><thead><tr><th>Users on system</th><th class="num">Price (ex VAT)</th></tr></thead>'
+                        f'<tbody>{trows}<tr class="sub"><td colspan="2">…then +{money(ADVANCED_PRICE_PER_EXTRA_BAND)} for each further band of {ADVANCED_EXTRA_BAND_SIZE} users.</td></tr></tbody></table>'
+                    )
 
 # ---------------- Hero (rendered last so the stepper reflects this run) ----------------
 if st.session_state.get("num_licences", 0) == 0 and not st.session_state.basket:
@@ -1260,7 +2476,7 @@ if st.session_state.get("num_licences", 0) == 0 and not st.session_state.basket:
 elif "active_quote_pdf" in st.session_state and st.session_state.get("active_quote_sig") == quote_signature():
     _step = 5
 elif st.session_state.basket:
-    _step = 3
+    _step = 4
 else:
-    _step = 2
+    _step = 3
 render_html(hero_html(_step), target=hero_slot)
